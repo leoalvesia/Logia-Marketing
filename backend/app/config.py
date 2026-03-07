@@ -9,7 +9,6 @@ _REQUIRED_IN_PRODUCTION: tuple[str, ...] = (
     "DATABASE_URL",
     "ANTHROPIC_API_KEY",
     "ENCRYPTION_KEY",
-    "SENTRY_DSN",
 )
 
 
