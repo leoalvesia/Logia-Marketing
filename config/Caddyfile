@@ -1,0 +1,100 @@
+# =============================================================================
+# Logia Marketing Platform — Caddyfile
+# SSL automático via Let's Encrypt (HTTP-01 challenge)
+# =============================================================================
+
+# Redirecionar www → apex
+www.logia.com.br {
+  redir https://app.logia.com.br{uri} permanent
+}
+
+app.logia.com.br {
+
+  # --------------------------------------------------
+  # Logging estruturado (JSON para parsing por ferramentas)
+  # --------------------------------------------------
+  log {
+    output file /var/log/caddy/access.log {
+      roll_size     100mb
+      roll_keep     10
+      roll_keep_for 720h
+    }
+    format json
+    level  INFO
+  }
+
+  # --------------------------------------------------
+  # WebSocket — proxy com timeout estendido
+  # Deve vir ANTES do bloco /api/* para evitar sobreposição
+  # --------------------------------------------------
+  reverse_proxy /ws/* backend:8000 {
+    transport http {
+      dial_timeout       30s
+      response_header_timeout 0  # sem timeout — conexão persistente
+    }
+    header_up Upgrade    {http.request.header.Upgrade}
+    header_up Connection {http.request.header.Connection}
+    header_up X-Real-IP  {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto https
+  }
+
+  # --------------------------------------------------
+  # API — proxy para FastAPI
+  # --------------------------------------------------
+  reverse_proxy /api/* backend:8000 {
+    transport http {
+      dial_timeout            10s
+      response_header_timeout 60s
+    }
+    header_up X-Real-IP          {remote_host}
+    header_up X-Forwarded-For    {remote_host}
+    header_up X-Forwarded-Proto  https
+    health_uri    /health
+    health_interval 15s
+    health_timeout  5s
+  }
+
+  # --------------------------------------------------
+  # Frontend estático — proxy para Nginx interno
+  # --------------------------------------------------
+  reverse_proxy frontend:80 {
+    transport http {
+      dial_timeout            10s
+      response_header_timeout 30s
+    }
+  }
+
+  # --------------------------------------------------
+  # Compressão gzip + zstd
+  # --------------------------------------------------
+  encode zstd gzip
+
+  # --------------------------------------------------
+  # Cabeçalhos de segurança
+  # --------------------------------------------------
+  header {
+    # HSTS: força HTTPS por 1 ano, inclui subdomínios
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    # Bloqueia iframes de outros domínios
+    X-Frame-Options "SAMEORIGIN"
+    # Previne MIME sniffing
+    X-Content-Type-Options "nosniff"
+    # Referrer mínimo
+    Referrer-Policy "strict-origin-when-cross-origin"
+    # Remove informações do servidor
+    -Server
+  }
+
+  # --------------------------------------------------
+  # Rate limiting por IP (requer módulo caddy-ratelimit
+  # ou use o rate limiting do próprio FastAPI)
+  # --------------------------------------------------
+  # rate_limit {
+  #   zone dynamic {
+  #     key {remote_host}
+  #     events 100
+  #     window 1m
+  #   }
+  # }
+}

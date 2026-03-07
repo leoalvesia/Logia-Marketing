@@ -1,0 +1,48 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+
+# === Banco de dados ===
+*.db
+*.sqlite3
+
+# === Credenciais (NUNCA commitar) ===
+backend/credentials/
+*.json
+!package.json
+!tsconfig.json
+!**/mock_*.json
+
+# === Frontend ===
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# === Docker ===
+.docker/
+
+# === IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+celerybeat-schedule
+celerybeat.pid

@@ -1,0 +1,60 @@
+# Bytecode Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Ambiente virtual / dependências locais
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Testes e cobertura
+tests/
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+*.cover
+
+# Ferramentas de desenvolvimento
+scripts/
+.mypy_cache/
+.ruff_cache/
+
+# Banco de dados local
+*.db
+*.sqlite3
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# CI/CD e docs
+.github/
+*.md
+PERFORMANCE.md
+
+# Alembic (não necessário na imagem — migrations rodam separadamente)
+# Descomente a linha abaixo se quiser excluir migrations da imagem
+# alembic/

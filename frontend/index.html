@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logia — Marketing Platform</title>
+    <meta name="description" content="Plataforma de criação e distribuição de conteúdo com IA para consultores e pequenas empresas brasileiras." />
+
+    <!-- Google Fonts: async (non-render-blocking) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      />
+    </noscript>
+
+    <!-- Critical inline styles for skeleton (prevents FOUC before JS) -->
+    <style>
+      html { background: #0F0F0F; }
+      body { margin: 0; background: #0F0F0F; }
+      #app-skeleton {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0F0F0F;
+      }
+      #app-skeleton-inner { text-align: center; }
+      #app-skeleton-icon {
+        width: 48px; height: 48px;
+        background: #6366F1;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px;
+        box-shadow: 0 0 24px rgba(99,102,241,0.4);
+      }
+      #app-skeleton-title {
+        color: #F9FAFB;
+        font-size: 24px;
+        font-weight: 700;
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0 0 8px;
+        letter-spacing: -0.02em;
+      }
+      #app-skeleton-sub {
+        color: #6B7280;
+        font-size: 13px;
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Inline skeleton: visible immediately, before React JS loads -->
+      <div id="app-skeleton" aria-hidden="true">
+        <div id="app-skeleton-inner">
+          <div id="app-skeleton-icon">
+            <!-- Zap icon (lucide) inline SVG -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                 stroke="white" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <h1 id="app-skeleton-title">Logia</h1>
+          <p id="app-skeleton-sub">Marketing Platform</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

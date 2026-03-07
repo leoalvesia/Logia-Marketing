@@ -1,0 +1,31 @@
+# Dependências (reinstaladas no build)
+node_modules/
+
+# Build anterior
+dist/
+
+# Testes E2E
+tests/
+test-results/
+playwright-report/
+
+# IDE
+.vscode/
+.idea/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Docker
+Dockerfile*
+.dockerignore
+# nginx.conf é necessário no build context para o COPY no Stage 2
+
+# Relatórios e screenshots (gerados em CI)
+screenshots/
+lighthouse-report.json

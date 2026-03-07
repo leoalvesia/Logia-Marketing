@@ -1,0 +1,45 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+    alembic
+  | \.git
+  | \.venv
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["alembic", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]  # line too long — handled by black
+
+[tool.bandit]
+exclude_dirs = ["tests", "alembic", ".venv"]
+skips = []
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    # Infra Celery — não testável sem broker Redis real
+    "app/celery_app.py",
+    "app/tasks.py",
+    # Stubs de arte — Features 16-18 (pendentes)
+    "app/agents/art/*",
+    # Publishers parcialmente implementados — pendentes de testes de integração
+    "app/publishers/instagram.py",
+    "app/publishers/twitter.py",
+    "app/publishers/linkedin.py",
+    # WebSocket — integration tests pendentes
+    "app/main.py",
+    # Welcome email — coberto indiretamente via test_invites (patch)
+    "app/publishers/welcome_email.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
