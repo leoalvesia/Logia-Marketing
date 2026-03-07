@@ -43,8 +43,10 @@ COPY --from=builder /root/.local /home/logia/.local
 
 WORKDIR /app
 
-# Apenas o código da aplicação (sem tests/, scripts/, .env — excluídos pelo .dockerignore)
+# Código da aplicação + migrations
 COPY app/ ./app/
+COPY alembic/ ./alembic/
+COPY alembic.ini .
 
 RUN chown -R logia:logia /app
 
