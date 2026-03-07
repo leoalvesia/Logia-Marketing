@@ -4,10 +4,9 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copiar manifests primeiro (camada cacheada se deps não mudarem)
-COPY package.json package-lock.json ./
+COPY package.json ./
 
-# npm ci: mais rápido e determinístico que npm install (usa package-lock.json exato)
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 
 # Copiar código e buildar
 COPY . .
