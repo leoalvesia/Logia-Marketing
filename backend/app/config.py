@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     # Gerar com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ENCRYPTION_KEY: str = ""
 
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
     # Alertas
     SLACK_WEBHOOK: str = ""
 
