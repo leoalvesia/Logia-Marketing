@@ -10,6 +10,12 @@ RUN npm install --ignore-scripts
 
 # Copiar código e buildar
 COPY . .
+
+ARG VITE_API_URL=https://logia-backend.mtdsdv.easypanel.host
+ARG VITE_WS_URL=wss://logia-backend.mtdsdv.easypanel.host
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 RUN npm run build
 
 
