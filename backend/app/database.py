@@ -33,6 +33,9 @@ async def init_db() -> None:
     Cria todas as tabelas registradas no metadata.
     Usado apenas em desenvolvimento — produção usa `alembic upgrade head`.
     """
+    if settings.ENVIRONMENT == "production":
+        return  # Alembic gerencia o schema em produção
+
     # Importar todos os models para registrá-los no Base.metadata
     import app.models  # noqa: F401
 
