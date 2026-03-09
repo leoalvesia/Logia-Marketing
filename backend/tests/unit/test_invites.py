@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -15,8 +15,6 @@ from app.config import settings
 from app.database import get_db
 from app.main import app
 from app.models.invite import Invite
-from app.models.user import User
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -179,12 +177,20 @@ class TestListInvites:
     async def test_schema_do_convite(self, invite_client):
         client, _ = invite_client
         await client.post("/admin/invites", json={}, headers={"X-Admin-Key": ADMIN_KEY})
-        invites = (
-            await client.get("/admin/invites", headers={"X-Admin-Key": ADMIN_KEY})
-        ).json()["invites"]
+        invites = (await client.get("/admin/invites", headers={"X-Admin-Key": ADMIN_KEY})).json()[
+            "invites"
+        ]
         assert set(invites[0].keys()) >= {
-            "id", "code", "created_by", "used_by", "used_at",
-            "uses_count", "max_uses", "expires_at", "created_at", "status",
+            "id",
+            "code",
+            "created_by",
+            "used_by",
+            "used_at",
+            "uses_count",
+            "max_uses",
+            "expires_at",
+            "created_at",
+            "status",
         }
 
 
@@ -282,7 +288,9 @@ class TestRegisterWithInvite:
         assert resp.status_code == 409
 
     @pytest.mark.asyncio
-    async def test_convite_marcado_como_usado_apos_registro(self, invite_client, valid_invite, async_engine):
+    async def test_convite_marcado_como_usado_apos_registro(
+        self, invite_client, valid_invite, async_engine
+    ):
         client, maker = invite_client
         with patch("app.routers.auth.send_welcome_email"):
             await client.post(
@@ -320,11 +328,21 @@ class TestRegisterWithInvite:
         with patch("app.routers.auth.send_welcome_email"):
             await client.post(
                 "/auth/register",
-                json={"email": "dup@test.com", "password": "abc", "name": "Dup", "invite_code": code1},
+                json={
+                    "email": "dup@test.com",
+                    "password": "abc",
+                    "name": "Dup",
+                    "invite_code": code1,
+                },
             )
             resp = await client.post(
                 "/auth/register",
-                json={"email": "dup@test.com", "password": "abc", "name": "Dup2", "invite_code": code2},
+                json={
+                    "email": "dup@test.com",
+                    "password": "abc",
+                    "name": "Dup2",
+                    "invite_code": code2,
+                },
             )
         assert resp.status_code == 400
 
@@ -340,7 +358,10 @@ class TestFeatureFlags:
         assert resp.status_code == 200
         flags = resp.json()["flags"]
         assert set(flags.keys()) == {
-            "carousel_agent", "thumbnail_agent", "linkedin_publish", "youtube_research"
+            "carousel_agent",
+            "thumbnail_agent",
+            "linkedin_publish",
+            "youtube_research",
         }
 
     @pytest.mark.asyncio

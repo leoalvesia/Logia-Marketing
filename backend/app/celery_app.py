@@ -23,13 +23,11 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="America/Sao_Paulo",
     enable_utc=True,
-
     # ── Performance ───────────────────────────────────────────────────────────
     # prefetch=1 evita que um worker acumule várias tasks longas de uma vez,
     # garantindo distribuição justa entre workers.
     worker_prefetch_multiplier=1,
     task_acks_late=True,  # confirma task apenas após conclusão (evita perda em crash)
-
     # ── Roteamento de filas ───────────────────────────────────────────────────
     # Filas separadas permitem escalar workers por tipo de carga:
     #   celery worker -Q copy   --concurrency=4
@@ -43,7 +41,6 @@ celery_app.conf.update(
         "app.tasks.run_daily_research": {"queue": "research"},
         "app.tasks.publish_post": {"queue": "copy"},
     },
-
     # ── Timeouts por tipo de task ─────────────────────────────────────────────
     # soft_time_limit: lança SoftTimeLimitExceeded (task pode limpar recursos)
     # time_limit:      mata o processo worker após o limite total
@@ -65,7 +62,6 @@ celery_app.conf.update(
             "time_limit": 300,
         },
     },
-
     # ── Beat schedule ─────────────────────────────────────────────────────────
     beat_schedule={
         # Pesquisa diária de tendências às 6h (horário de Brasília)

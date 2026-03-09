@@ -43,9 +43,7 @@ async def _pipeline_stats(since: datetime, db) -> dict:
     from app.models.pipeline import Pipeline, PipelineState
     from app.models.copy import Copy, CopyStatus
 
-    total_q = await db.execute(
-        select(func.count(Pipeline.id)).where(Pipeline.created_at >= since)
-    )
+    total_q = await db.execute(select(func.count(Pipeline.id)).where(Pipeline.created_at >= since))
     total = total_q.scalar_one() or 0
 
     published_q = await db.execute(

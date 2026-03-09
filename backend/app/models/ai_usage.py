@@ -31,9 +31,7 @@ class AiUsageLog(Base):
         Index("ix_ai_usage_agent_created", "agent_name", "created_at"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     # Nome do agente: copy_instagram, copy_linkedin, copy_twitter,
     #                 copy_youtube, copy_email, art_generator,
     #                 research_youtube, research_instagram, etc.
@@ -46,9 +44,7 @@ class AiUsageLog(Base):
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     # pipeline_id opcional para rastrear custo por sessão
     pipeline_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_now, index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
 
     def __repr__(self) -> str:
         return (

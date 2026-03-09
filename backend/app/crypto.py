@@ -10,6 +10,7 @@ Regras:
   - Se ENCRYPTION_KEY estiver vazia (dev sem configuração), opera sem criptografia
     e emite aviso. Em produção, a config.py valida que a chave está presente.
 """
+
 from __future__ import annotations
 
 import logging

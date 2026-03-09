@@ -11,8 +11,6 @@ Uso:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-
 
 # Dados realistas por plataforma — espelham o que o orquestrador retorna
 _PLATFORM_TEMPLATES: dict[str, dict] = {

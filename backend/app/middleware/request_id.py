@@ -2,6 +2,7 @@
 Middleware que gera um X-Request-ID único por requisição e o injeta
 no contexto do structlog (disponível em todos os logs do request).
 """
+
 from __future__ import annotations
 
 import uuid

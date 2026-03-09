@@ -16,6 +16,7 @@ Bloqueio de IP:
 Fail-open: quando Redis está indisponível, as requisições passam normalmente.
 Circuit-breaker: após 1ª falha de conexão, Redis desabilitado por 30 s.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -37,19 +38,19 @@ logger = get_logger(__name__)
 # Tupla: (padrão glob "METHOD:/path/*", limite, janela_segundos, chave_por)
 # chave_por: "user" = user_id do JWT | "ip" = IP do cliente
 _LIMITS: list[tuple[str, int, int, str]] = [
-    ("POST:/auth/login",                         5,     60, "ip"),    # 5/min por IP
-    ("POST:/auth/register",                      3,   3600, "ip"),    # 3/hora por IP
-    ("POST:/api/pipeline/start",                20,   3600, "user"),  # 20/h por usuário
-    ("POST:/api/pipeline/*/select-topic",      100,   3600, "user"),  # 100/h copy agents
-    ("POST:/api/pipeline/*/approve-copy",      100,   3600, "user"),  # 100/h copy agents
-    ("POST:/api/pipeline/*/approve-art",        20,   3600, "user"),  # 20/h art agents
-    ("POST:/feedback/*",                        10,  86400, "user"),  # 10/dia feedback
+    ("POST:/auth/login", 5, 60, "ip"),  # 5/min por IP
+    ("POST:/auth/register", 3, 3600, "ip"),  # 3/hora por IP
+    ("POST:/api/pipeline/start", 20, 3600, "user"),  # 20/h por usuário
+    ("POST:/api/pipeline/*/select-topic", 100, 3600, "user"),  # 100/h copy agents
+    ("POST:/api/pipeline/*/approve-copy", 100, 3600, "user"),  # 100/h copy agents
+    ("POST:/api/pipeline/*/approve-art", 20, 3600, "user"),  # 20/h art agents
+    ("POST:/feedback/*", 10, 86400, "user"),  # 10/dia feedback
 ]
 
 # IP block após falhas de login repetidas
-_LOGIN_FAIL_LIMIT = 100          # falhas máximas em 1 hora
-_LOGIN_FAIL_WINDOW_S = 3600      # janela de contagem (1 hora)
-_LOGIN_BLOCK_TTL_S = 86400       # duração do bloqueio (24 horas)
+_LOGIN_FAIL_LIMIT = 100  # falhas máximas em 1 hora
+_LOGIN_FAIL_WINDOW_S = 3600  # janela de contagem (1 hora)
+_LOGIN_BLOCK_TTL_S = 86400  # duração do bloqueio (24 horas)
 
 # ── Redis client com circuit-breaker próprio ───────────────────────────────────
 

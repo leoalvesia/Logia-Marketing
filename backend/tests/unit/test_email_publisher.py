@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from app.publishers.email import _build_html, send_email
-
 
 # ── Fixtures de copy_json ─────────────────────────────────────────────────────
 

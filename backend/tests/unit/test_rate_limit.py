@@ -19,7 +19,6 @@ from app.middleware.rate_limit import (
 )
 from app.models.user import User
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
@@ -110,7 +109,7 @@ class TestCheckAndIncrement:
         mock_pipe = AsyncMock()
         mock_pipe.execute = AsyncMock(return_value=[1, True])
 
-        mock_client = MagicMock()          # NÃO AsyncMock — pipeline() é síncrono
+        mock_client = MagicMock()  # NÃO AsyncMock — pipeline() é síncrono
         mock_client.pipeline.return_value = mock_pipe
 
         with (
@@ -126,7 +125,7 @@ class TestCheckAndIncrement:
         mock_pipe = AsyncMock()
         mock_pipe.execute = AsyncMock(return_value=[11, True])
 
-        mock_client = MagicMock()          # NÃO AsyncMock — pipeline() é síncrono
+        mock_client = MagicMock()  # NÃO AsyncMock — pipeline() é síncrono
         mock_client.pipeline.return_value = mock_pipe
 
         with (
@@ -166,18 +165,14 @@ class TestRateLimitHTTP:
     async def test_request_sem_token_nao_bloqueado(self, rl_client):
         """Requests sem Bearer token passam (serão rejeitados pelo auth, não pelo RL)."""
         client, _ = rl_client
-        with patch(
-            "app.middleware.rate_limit._check_and_increment", return_value=False
-        ):
+        with patch("app.middleware.rate_limit._check_and_increment", return_value=False):
             resp = await client.get("/health")
         assert resp.status_code != 429
 
     async def test_request_dentro_do_limite_passa(self, rl_client):
         """Requests dentro do limite retornam o status normal do endpoint."""
         client, _ = rl_client
-        with patch(
-            "app.middleware.rate_limit._check_and_increment", return_value=False
-        ):
+        with patch("app.middleware.rate_limit._check_and_increment", return_value=False):
             resp = await client.post(
                 "/api/pipeline/start",
                 json={"channels": ["instagram"]},
@@ -196,9 +191,7 @@ class TestRateLimitHTTP:
             algorithm="HS256",
         )
 
-        with patch(
-            "app.middleware.rate_limit._check_and_increment", return_value=True
-        ):
+        with patch("app.middleware.rate_limit._check_and_increment", return_value=True):
             resp = await client.post(
                 "/api/pipeline/start",
                 headers={"Authorization": f"Bearer {token}"},
@@ -222,9 +215,7 @@ class TestRateLimitHTTP:
     async def test_endpoint_get_nao_bloqueado(self, rl_client):
         """GET endpoints não têm rate limit configurado."""
         client, _ = rl_client
-        with patch(
-            "app.middleware.rate_limit._check_and_increment", return_value=True
-        ):
+        with patch("app.middleware.rate_limit._check_and_increment", return_value=True):
             # Mesmo com check retornando True, GET /copies não é verificado
             resp = await client.get("/api/library/copies")
         # 200 porque o endpoint GET não passa pelo check

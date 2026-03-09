@@ -17,13 +17,9 @@ def _now() -> datetime:
 
 class RequestLog(Base):
     __tablename__ = "request_logs"
-    __table_args__ = (
-        Index("ix_request_logs_endpoint_timestamp", "endpoint", "timestamp"),
-    )
+    __table_args__ = (Index("ix_request_logs_endpoint_timestamp", "endpoint", "timestamp"),)
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     endpoint: Mapped[str] = mapped_column(String(500))
     method: Mapped[str] = mapped_column(String(10))
     duration_ms: Mapped[int] = mapped_column(Integer)

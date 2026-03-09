@@ -107,9 +107,7 @@ def send_welcome_email(name: str, email: str) -> bool:
             "html": _build_welcome_html(name),
         }
         response = resend.Emails.send(params)
-        msg_id = (
-            response.get("id") if isinstance(response, dict) else getattr(response, "id", "")
-        )
+        msg_id = response.get("id") if isinstance(response, dict) else getattr(response, "id", "")
         logger.info("welcome_email_sent", email=email, msg_id=msg_id)
         return True
     except Exception as exc:

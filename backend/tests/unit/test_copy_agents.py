@@ -503,7 +503,6 @@ class TestConstants:
         assert str(CHANNEL_LIMITS["twitter"]["thread_max"]) in prompt
 
     def test_never_invent_clause_em_todos_prompts(self):
-        from app.agents.copy.base import _NEVER_INVENT_CLAUSE
         from app.agents.copy.instagram import InstagramCopyAgent
         from app.agents.copy.linkedin import LinkedinCopyAgent
         from app.agents.copy.twitter import TwitterCopyAgent

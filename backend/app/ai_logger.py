@@ -25,17 +25,17 @@ logger = get_logger(__name__)
 # Fonte: precos oficiais Anthropic e OpenAI (2026-03)
 _PRICES: dict[str, tuple[float, float]] = {
     # modelo: (preco_in_por_1M, preco_out_por_1M)
-    "claude-opus-4-6":       (15.00, 75.00),
-    "claude-sonnet-4-6":     (3.00,  15.00),
-    "claude-haiku-4-5":      (0.25,   1.25),
+    "claude-opus-4-6": (15.00, 75.00),
+    "claude-sonnet-4-6": (3.00, 15.00),
+    "claude-haiku-4-5": (0.25, 1.25),
     # fallback — prefixo
-    "claude-opus":           (15.00, 75.00),
-    "claude-sonnet":         (3.00,  15.00),
-    "claude-haiku":          (0.25,   1.25),
+    "claude-opus": (15.00, 75.00),
+    "claude-sonnet": (3.00, 15.00),
+    "claude-haiku": (0.25, 1.25),
     # OpenAI
-    "gpt-4o":                (5.00,  15.00),
-    "gpt-4o-mini":           (0.15,   0.60),
-    "gpt-4-turbo":           (10.00, 30.00),
+    "gpt-4o": (5.00, 15.00),
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4-turbo": (10.00, 30.00),
 }
 
 

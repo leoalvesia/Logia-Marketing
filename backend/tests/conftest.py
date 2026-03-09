@@ -14,7 +14,6 @@ import importlib.util
 import json
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -31,7 +30,6 @@ from app.main import app
 
 # ── Models (necessário para registrar os metadados) ───────────────────────────
 import app.models  # noqa: F401
-from app.models.copy import Copy, CopyChannel, CopyStatus
 from app.models.pipeline import Pipeline, PipelineState
 from app.models.topic import Topic
 from app.models.user import User
@@ -216,6 +214,17 @@ _FAKE_LLM_RESPONSES: dict[str, str] = {
 def _fake_llm_response(channel: str = "default") -> str:
     """Retorna resposta fake para o canal especificado."""
     return _FAKE_LLM_RESPONSES.get(channel, _FAKE_LLM_RESPONSES["default"])
+
+
+@pytest.fixture(autouse=True)
+def mock_celery_dispatch():
+    """Impede que tasks Celery tentem conectar ao broker durante testes.
+
+    Todas as chamadas .delay() / .apply_async() retornam MagicMock,
+    garantindo que nenhum teste dispara conexão real com Redis/broker.
+    """
+    with patch("celery.app.task.Task.apply_async", return_value=MagicMock()):
+        yield
 
 
 @pytest.fixture(autouse=True)

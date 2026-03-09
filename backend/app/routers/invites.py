@@ -146,6 +146,6 @@ async def toggle_feature(name: str, body: FeatureFlagPatch) -> dict:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Feature flag '{name}' não encontrado. "
-                   f"Flags disponíveis: {list(get_flags().keys())}",
+            f"Flags disponíveis: {list(get_flags().keys())}",
         )
     return {"name": name, "enabled": body.enabled}

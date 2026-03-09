@@ -57,16 +57,12 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)) ->
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Convite expirado")
 
     if invite.is_used:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Convite já utilizado"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Convite já utilizado")
 
     # 2. Email único
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email já cadastrado"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já cadastrado")
 
     # 3. Criar usuário
     user = User(
@@ -87,9 +83,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)) ->
     await db.commit()
 
     # 5. Email de boas-vindas em background (fire-and-forget)
-    asyncio.get_event_loop().run_in_executor(
-        None, send_welcome_email, user.name, user.email
-    )
+    asyncio.get_event_loop().run_in_executor(None, send_welcome_email, user.name, user.email)
 
     # 6. Retornar token diretamente (evita segundo roundtrip de login)
     token = create_access_token({"sub": user.id})

@@ -42,16 +42,12 @@ def collect(username: str) -> list[dict]:
 
         items: list[dict] = []
         for tweet in tweets_response.data:
-            published = (
-                tweet.created_at.isoformat() if tweet.created_at else ""
-            )
+            published = tweet.created_at.isoformat() if tweet.created_at else ""
             items.append(
                 {
                     "title": tweet.text[:100],
                     "description": tweet.text,
-                    "url": (
-                        f"https://twitter.com/{clean_username}/status/{tweet.id}"
-                    ),
+                    "url": (f"https://twitter.com/{clean_username}/status/{tweet.id}"),
                     "published_at": published,
                     "platform": "twitter",
                 }

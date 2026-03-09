@@ -17,17 +17,13 @@ def _now() -> datetime:
 
 class NpsFeedback(Base):
     __tablename__ = "nps_feedback"
-    __table_args__ = (
-        Index("ix_nps_user_created", "user_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_nps_user_created", "user_id", "created_at"),)
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    score: Mapped[int] = mapped_column(Integer)          # 0–10
+    score: Mapped[int] = mapped_column(Integer)  # 0–10
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -38,16 +34,14 @@ class NpsFeedback(Base):
 class PostFeedback(Base):
     __tablename__ = "post_feedback"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     pipeline_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("pipeline_sessions.id", ondelete="CASCADE"), index=True
     )
-    rating: Mapped[int] = mapped_column(Integer)         # 1–5
+    rating: Mapped[int] = mapped_column(Integer)  # 1–5
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -57,13 +51,9 @@ class PostFeedback(Base):
 
 class BugReport(Base):
     __tablename__ = "bug_reports"
-    __table_args__ = (
-        Index("ix_bug_reports_status_created", "status", "created_at"),
-    )
+    __table_args__ = (Index("ix_bug_reports_status_created", "status", "created_at"),)
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )

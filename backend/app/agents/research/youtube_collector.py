@@ -53,9 +53,7 @@ def collect(channel_id: str) -> list[dict]:
 
     except HttpError as e:
         if e.resp.status == 403:
-            logger.warning(
-                f"youtube: quota exceeded ao coletar canal {channel_id!r}"
-            )
+            logger.warning(f"youtube: quota exceeded ao coletar canal {channel_id!r}")
         else:
             logger.error(f"youtube: {e}")
         return []

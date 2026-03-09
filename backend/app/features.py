@@ -16,8 +16,8 @@ import os
 
 # Valores padrão lidos de env vars no startup
 _DEFAULTS: dict[str, bool] = {
-    "carousel_agent":   os.getenv("FF_CAROUSEL", "false") == "true",
-    "thumbnail_agent":  os.getenv("FF_THUMBNAIL", "false") == "true",
+    "carousel_agent": os.getenv("FF_CAROUSEL", "false") == "true",
+    "thumbnail_agent": os.getenv("FF_THUMBNAIL", "false") == "true",
     "linkedin_publish": os.getenv("FF_LINKEDIN", "true") == "true",
     "youtube_research": os.getenv("FF_YOUTUBE_RESEARCH", "true") == "true",
 }

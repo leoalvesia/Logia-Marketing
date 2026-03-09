@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,8 +12,8 @@ import pytest
 from app.agents.research.orchestrator import (
     _calc_recencia,
     _extract_resumo,
+    _extract_statistics,
     _group_by_theme,
-    _parse_date,
     _verify_url,
     orchestrate,
 )
@@ -521,8 +522,6 @@ class TestEdgeCases:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-from app.agents.research.orchestrator import _extract_statistics
-
 
 class TestExtractStatistics:
     def test_extrai_percentual(self):
@@ -675,6 +674,3 @@ class TestSourceVerification:
             assert _verify_url("") is False
             assert _verify_url("ftp://nao-suportado.com") is False
 
-
-# importar datetime e timezone para uso nos testes
-from datetime import datetime, timezone

@@ -15,48 +15,68 @@ class InvalidStateTransitionError(Exception):
 # Mapa de transições válidas: estado atual → frozenset de estados permitidos.
 # Todas as transições não listadas aqui são inválidas.
 VALID_TRANSITIONS: dict[PipelineState, frozenset[PipelineState]] = {
-    PipelineState.RESEARCHING: frozenset({
-        PipelineState.ORCHESTRATING,
-        PipelineState.FAILED,
-    }),
-    PipelineState.ORCHESTRATING: frozenset({
-        PipelineState.AWAITING_SELECTION,
-        PipelineState.FAILED,
-    }),
-    PipelineState.AWAITING_SELECTION: frozenset({
-        PipelineState.GENERATING_COPY,
-        PipelineState.FAILED,
-    }),
-    PipelineState.GENERATING_COPY: frozenset({
-        PipelineState.COPY_REVIEW,
-        PipelineState.FAILED,
-    }),
-    PipelineState.COPY_REVIEW: frozenset({
-        PipelineState.GENERATING_ART,
-        PipelineState.SCHEDULED,   # atalho: pular geração de arte
-        PipelineState.FAILED,
-    }),
-    PipelineState.GENERATING_ART: frozenset({
-        PipelineState.ART_REVIEW,
-        PipelineState.FAILED,
-    }),
-    PipelineState.ART_REVIEW: frozenset({
-        PipelineState.SCHEDULED,
-        PipelineState.PUBLISHING,  # publicação imediata sem agendamento
-        PipelineState.FAILED,
-    }),
-    PipelineState.SCHEDULED: frozenset({
-        PipelineState.PUBLISHING,
-        PipelineState.FAILED,
-    }),
-    PipelineState.PUBLISHING: frozenset({
-        PipelineState.PUBLISHED,
-        PipelineState.FAILED,
-    }),
-    PipelineState.PUBLISHED: frozenset(),   # estado terminal
-    PipelineState.FAILED: frozenset({
-        PipelineState.RESEARCHING,          # retry
-    }),
+    PipelineState.RESEARCHING: frozenset(
+        {
+            PipelineState.ORCHESTRATING,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.ORCHESTRATING: frozenset(
+        {
+            PipelineState.AWAITING_SELECTION,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.AWAITING_SELECTION: frozenset(
+        {
+            PipelineState.GENERATING_COPY,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.GENERATING_COPY: frozenset(
+        {
+            PipelineState.COPY_REVIEW,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.COPY_REVIEW: frozenset(
+        {
+            PipelineState.GENERATING_ART,
+            PipelineState.SCHEDULED,  # atalho: pular geração de arte
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.GENERATING_ART: frozenset(
+        {
+            PipelineState.ART_REVIEW,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.ART_REVIEW: frozenset(
+        {
+            PipelineState.SCHEDULED,
+            PipelineState.PUBLISHING,  # publicação imediata sem agendamento
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.SCHEDULED: frozenset(
+        {
+            PipelineState.PUBLISHING,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.PUBLISHING: frozenset(
+        {
+            PipelineState.PUBLISHED,
+            PipelineState.FAILED,
+        }
+    ),
+    PipelineState.PUBLISHED: frozenset(),  # estado terminal
+    PipelineState.FAILED: frozenset(
+        {
+            PipelineState.RESEARCHING,  # retry
+        }
+    ),
 }
 
 

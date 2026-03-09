@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     # Observabilidade
     SENTRY_DSN: str = ""
     ENVIRONMENT: str = "development"  # development | production
-    BUILD_SHA: str = "dev"            # injetado pelo Docker build-arg
+    BUILD_SHA: str = "dev"  # injetado pelo Docker build-arg
 
     # Criptografia de tokens OAuth
     # Gerar com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -106,10 +106,7 @@ def validate_production_config() -> None:
     if settings.ENVIRONMENT != "production":
         return
 
-    missing = [
-        field for field in _REQUIRED_IN_PRODUCTION
-        if not getattr(settings, field, "")
-    ]
+    missing = [field for field in _REQUIRED_IN_PRODUCTION if not getattr(settings, field, "")]
     if missing:
         # Usar print direto — logger pode não estar configurado ainda
         print(

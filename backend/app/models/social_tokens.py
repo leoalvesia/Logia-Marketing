@@ -30,9 +30,7 @@ class SocialToken(Base):
         UniqueConstraint("user_id", "platform", name="uq_social_tokens_user_platform"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
@@ -53,11 +51,13 @@ class SocialToken(Base):
     def set_access_token(self, plain: str) -> None:
         """Criptografa e armazena o access token. Nunca passar o valor cru."""
         from app.crypto import encrypt_token
+
         self.access_token = encrypt_token(plain)
 
     def get_access_token(self) -> str:
         """Decriptografa e retorna o access token. Nunca logar o retorno."""
         from app.crypto import decrypt_token
+
         return decrypt_token(self.access_token)
 
     def set_refresh_token(self, plain: str | None) -> None:
@@ -66,6 +66,7 @@ class SocialToken(Base):
             self.refresh_token = None
             return
         from app.crypto import encrypt_token
+
         self.refresh_token = encrypt_token(plain)
 
     def get_refresh_token(self) -> str | None:
@@ -73,6 +74,7 @@ class SocialToken(Base):
         if self.refresh_token is None:
             return None
         from app.crypto import decrypt_token
+
         return decrypt_token(self.refresh_token)
 
     def __repr__(self) -> str:

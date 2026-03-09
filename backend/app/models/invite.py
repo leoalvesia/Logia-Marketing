@@ -18,9 +18,7 @@ def _now() -> datetime:
 class Invite(Base):
     __tablename__ = "invites"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     code: Mapped[str] = mapped_column(
         String(36), unique=True, index=True, default=lambda: str(uuid.uuid4())
     )

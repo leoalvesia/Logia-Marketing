@@ -3,6 +3,7 @@
 Aplicado a todas as respostas da API FastAPI.
 Headers duplicados com Caddy são inofensivos — Caddy pode sobrescrever.
 """
+
 from __future__ import annotations
 
 from starlette.middleware.base import BaseHTTPMiddleware

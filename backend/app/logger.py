@@ -5,6 +5,7 @@ JSON em produção, pretty-print em dev.
 Campos obrigatórios em todo log:
   timestamp, level, service, environment, request_id, event
 """
+
 from __future__ import annotations
 
 import logging

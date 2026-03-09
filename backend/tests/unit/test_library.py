@@ -19,7 +19,6 @@ from app.models.copy import Copy, CopyChannel, CopyStatus
 from app.models.pipeline import Pipeline, PipelineState
 from app.models.user import User
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
@@ -165,7 +164,15 @@ class TestListCopies:
         client, _ = lib_client
         resp = await client.get("/api/library/copies")
         c = resp.json()["copies"][0]
-        assert set(c.keys()) >= {"id", "pipeline_id", "channel", "status", "content", "source_url", "created_at"}
+        assert set(c.keys()) >= {
+            "id",
+            "pipeline_id",
+            "channel",
+            "status",
+            "content",
+            "source_url",
+            "created_at",
+        }
 
     @pytest.mark.asyncio
     async def test_content_retornado_como_dict(self, lib_client):
@@ -254,9 +261,7 @@ class TestListPosts:
 
         mock_user = MagicMock(spec=User)
         mock_user.id = user_id
-        app.dependency_overrides[get_db] = lambda: (
-            maker().__aenter__()
-        )
+        app.dependency_overrides[get_db] = lambda: (maker().__aenter__())
         app.dependency_overrides[get_current_user] = lambda: mock_user
 
         async def _get_db_override():

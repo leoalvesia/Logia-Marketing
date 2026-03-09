@@ -57,9 +57,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         return response
 
 
-async def _persist_log(
-    endpoint: str, method: str, duration_ms: int, status_code: int
-) -> None:
+async def _persist_log(endpoint: str, method: str, duration_ms: int, status_code: int) -> None:
     """Salva o registro de métricas na tabela request_logs."""
     try:
         async with AsyncSessionLocal() as db:

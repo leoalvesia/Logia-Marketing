@@ -13,9 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.auth import get_current_user
 from app.database import get_db
 from app.main import app
-from app.models.monitored_profiles import MonitoredProfile
 from app.models.user import User
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -27,9 +25,7 @@ async def settings_data(async_engine):
     user_id = str(uuid.uuid4())
 
     async with maker() as session:
-        session.add(
-            User(id=user_id, email="cfg@test.com", hashed_password="h", name="Cfg")
-        )
+        session.add(User(id=user_id, email="cfg@test.com", hashed_password="h", name="Cfg"))
         await session.commit()
 
     mock_user = MagicMock(spec=User)
@@ -68,7 +64,11 @@ class TestAddProfile:
         client, _ = settings_client
         resp = await client.post(
             "/api/settings/profiles",
-            json={"platform": "instagram", "handle": "@logia_br", "url": "https://instagram.com/logia_br"},
+            json={
+                "platform": "instagram",
+                "handle": "@logia_br",
+                "url": "https://instagram.com/logia_br",
+            },
         )
         assert resp.status_code == 201
 

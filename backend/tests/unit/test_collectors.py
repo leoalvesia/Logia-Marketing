@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from types import ModuleType
 from unittest.mock import MagicMock, patch
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers para construir mocks de módulos não instalados
 # ─────────────────────────────────────────────────────────────────────────────
@@ -296,7 +295,9 @@ class TestInstagramCollector:
 
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
-            "collector": [{"description": "Rapid post", "url": "https://x.com", "taken_at_timestamp": 0}]
+            "collector": [
+                {"description": "Rapid post", "url": "https://x.com", "taken_at_timestamp": 0}
+            ]
         }
         mock_resp.raise_for_status = MagicMock()
 

@@ -14,6 +14,7 @@ Uso:
     await cache_set(key, data, ttl=60)
     await cache_invalidate("logia:copies:user123:*")
 """
+
 from __future__ import annotations
 
 import json

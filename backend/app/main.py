@@ -40,16 +40,29 @@ _start_time: float = time.time()
 # Sentry — inicializar antes de criar o app
 # ──────────────────────────────────────────────
 
-_SENSITIVE_FIELDS = frozenset({
-    "access_token", "refresh_token", "password", "api_key",
-    "secret_key", "token", "authorization", "cookie",
-    "resend_api_key", "anthropic_api_key", "openai_api_key",
-    "stability_ai_key", "apify_token", "rapidapi_key",
-})
+_SENSITIVE_FIELDS = frozenset(
+    {
+        "access_token",
+        "refresh_token",
+        "password",
+        "api_key",
+        "secret_key",
+        "token",
+        "authorization",
+        "cookie",
+        "resend_api_key",
+        "anthropic_api_key",
+        "openai_api_key",
+        "stability_ai_key",
+        "apify_token",
+        "rapidapi_key",
+    }
+)
 
 
 def _scrub_sensitive_data(event: dict, hint: dict) -> dict:
     """Remove campos sensíveis antes de enviar ao Sentry."""
+
     def _scrub(obj):
         if isinstance(obj, dict):
             return {
@@ -101,7 +114,7 @@ async def lifespan(app: FastAPI):
     global _start_time
     _start_time = time.time()
     configure_logging()
-    validate_production_config()   # exit(1) se config incompleta em produção
+    validate_production_config()  # exit(1) se config incompleta em produção
     await init_db()
     logger.info("startup", version=settings.BUILD_SHA, environment=settings.ENVIRONMENT)
     yield
@@ -211,9 +224,7 @@ async def health(db: AsyncSession = Depends(get_db)):
             return len(pong) if pong else 0
 
         loop = asyncio.get_event_loop()
-        workers = await asyncio.wait_for(
-            loop.run_in_executor(None, _inspect), timeout=1.0
-        )
+        workers = await asyncio.wait_for(loop.run_in_executor(None, _inspect), timeout=1.0)
 
         client = _get_client()
         queue_copy, queue_art, queue_research = await asyncio.gather(
@@ -237,6 +248,7 @@ async def health(db: AsyncSession = Depends(get_db)):
     last_deploy: str | None = None
     try:
         import pathlib
+
         ts_file = pathlib.Path("/app/.deploy_ts")
         if ts_file.exists():
             last_deploy = ts_file.read_text().strip()

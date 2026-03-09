@@ -133,9 +133,7 @@ async def list_copies(
     total = total_result.scalar_one()
 
     result = await db.execute(
-        q.order_by(Copy.created_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
+        q.order_by(Copy.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
     )
     copies = result.scalars().all()
 
@@ -155,7 +153,9 @@ async def list_copies(
 
 @router.get("/arts")
 async def list_arts(
-    art_type: Optional[str] = Query(None, alias="type", description="Filtro por tipo: static, carousel, thumbnail"),
+    art_type: Optional[str] = Query(
+        None, alias="type", description="Filtro por tipo: static, carousel, thumbnail"
+    ),
     page: int = Query(1, ge=1, description="Número da página"),
     per_page: int = Query(20, ge=1, le=100, description="Itens por página"),
     db: AsyncSession = Depends(get_db),
@@ -177,9 +177,7 @@ async def list_arts(
     total = total_result.scalar_one()
 
     result = await db.execute(
-        q.order_by(Art.created_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
+        q.order_by(Art.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
     )
     arts = result.scalars().all()
 
@@ -229,9 +227,7 @@ async def list_posts(
             .where(Copy.pipeline_id.in_(pipeline_ids))
             .where(Copy.status != CopyStatus.DELETED)
         ),
-        db.execute(
-            select(Art).where(Art.pipeline_id.in_(pipeline_ids))
-        ),
+        db.execute(select(Art).where(Art.pipeline_id.in_(pipeline_ids))),
     )
 
     copies_by_pipeline: dict[str, list] = {}

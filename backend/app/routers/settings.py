@@ -47,9 +47,7 @@ def _profile_to_dict(p: MonitoredProfile) -> dict[str, Any]:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _get_profile_or_404(
-    profile_id: str, user_id: str, db: AsyncSession
-) -> MonitoredProfile:
+async def _get_profile_or_404(profile_id: str, user_id: str, db: AsyncSession) -> MonitoredProfile:
     result = await db.execute(
         select(MonitoredProfile).where(
             MonitoredProfile.id == profile_id,
@@ -58,9 +56,7 @@ async def _get_profile_or_404(
     )
     profile = result.scalar_one_or_none()
     if profile is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Perfil não encontrado"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil não encontrado")
     return profile
 
 

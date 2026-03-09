@@ -8,7 +8,6 @@ import pytest
 
 from app.storage.google_drive import _guess_mime, upload_image
 
-
 # ── Helpers de setup dos mocks ────────────────────────────────────────────────
 
 

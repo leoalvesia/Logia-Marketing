@@ -98,6 +98,7 @@ async def submit_nps(
     if body.score <= 6:
         try:
             from app.tasks.feedback_tasks import alert_low_nps
+
             alert_low_nps.delay(
                 current_user.id,
                 current_user.email,
@@ -167,6 +168,7 @@ async def submit_bug_report(
 
     try:
         from app.tasks.feedback_tasks import alert_bug_report
+
         alert_bug_report.delay(entry.id, current_user.email, body.description, body.url)
     except Exception as exc:
         logger.warning("bug_alert_task_failed", error=str(exc))
@@ -190,12 +192,8 @@ async def nps_stats(
         select(
             func.avg(NpsFeedback.score).label("avg"),
             func.count(NpsFeedback.id).label("total"),
-            func.sum(
-                func.case((NpsFeedback.score >= 9, 1), else_=0)
-            ).label("promoters"),
-            func.sum(
-                func.case((NpsFeedback.score <= 6, 1), else_=0)
-            ).label("detractors"),
+            func.sum(func.case((NpsFeedback.score >= 9, 1), else_=0)).label("promoters"),
+            func.sum(func.case((NpsFeedback.score <= 6, 1), else_=0)).label("detractors"),
         ).where(NpsFeedback.created_at >= since)
     )
     row = agg.one()
@@ -348,24 +346,25 @@ async def export_csv(
     output = io.StringIO()
 
     if tipo == "nps":
-        result = await db.execute(
-            select(NpsFeedback).order_by(NpsFeedback.created_at.desc())
-        )
+        result = await db.execute(select(NpsFeedback).order_by(NpsFeedback.created_at.desc()))
         rows = result.scalars().all()
         writer = csv.DictWriter(
             output, fieldnames=["id", "user_id", "score", "comment", "created_at"]
         )
         writer.writeheader()
         for r in rows:
-            writer.writerow({
-                "id": r.id, "user_id": r.user_id, "score": r.score,
-                "comment": r.comment or "", "created_at": r.created_at.isoformat(),
-            })
+            writer.writerow(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "score": r.score,
+                    "comment": r.comment or "",
+                    "created_at": r.created_at.isoformat(),
+                }
+            )
 
     elif tipo == "bugs":
-        result = await db.execute(
-            select(BugReport).order_by(BugReport.created_at.desc())
-        )
+        result = await db.execute(select(BugReport).order_by(BugReport.created_at.desc()))
         rows = result.scalars().all()
         writer = csv.DictWriter(
             output,
@@ -373,16 +372,19 @@ async def export_csv(
         )
         writer.writeheader()
         for r in rows:
-            writer.writerow({
-                "id": r.id, "user_id": r.user_id, "description": r.description,
-                "url": r.url or "", "status": r.status,
-                "created_at": r.created_at.isoformat(),
-            })
+            writer.writerow(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "description": r.description,
+                    "url": r.url or "",
+                    "status": r.status,
+                    "created_at": r.created_at.isoformat(),
+                }
+            )
 
     else:  # posts
-        result = await db.execute(
-            select(PostFeedback).order_by(PostFeedback.created_at.desc())
-        )
+        result = await db.execute(select(PostFeedback).order_by(PostFeedback.created_at.desc()))
         rows = result.scalars().all()
         writer = csv.DictWriter(
             output,
@@ -390,11 +392,16 @@ async def export_csv(
         )
         writer.writeheader()
         for r in rows:
-            writer.writerow({
-                "id": r.id, "user_id": r.user_id, "pipeline_id": r.pipeline_id,
-                "rating": r.rating, "comment": r.comment or "",
-                "created_at": r.created_at.isoformat(),
-            })
+            writer.writerow(
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "pipeline_id": r.pipeline_id,
+                    "rating": r.rating,
+                    "comment": r.comment or "",
+                    "created_at": r.created_at.isoformat(),
+                }
+            )
 
     output.seek(0)
     filename = f"logia_feedback_{tipo}_{datetime.now().strftime('%Y%m%d')}.csv"

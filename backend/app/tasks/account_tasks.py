@@ -28,9 +28,7 @@ def revoke_oauth_tokens(user_id: str) -> None:
         from app.models.social_tokens import SocialToken
 
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(SocialToken).where(SocialToken.user_id == user_id)
-            )
+            result = await db.execute(select(SocialToken).where(SocialToken.user_id == user_id))
             tokens = result.scalars().all()
             for token in tokens:
                 logger.info(
@@ -41,9 +39,7 @@ def revoke_oauth_tokens(user_id: str) -> None:
                 # Soft delete dos tokens — hard delete junto com a conta
                 # (tokens OAuth externos raramente suportam revogação server-side)
 
-            await db.execute(
-                delete(SocialToken).where(SocialToken.user_id == user_id)
-            )
+            await db.execute(delete(SocialToken).where(SocialToken.user_id == user_id))
             await db.commit()
             logger.info("oauth_tokens_revoked", user_id=user_id, count=len(tokens))
 
@@ -81,9 +77,7 @@ def hard_delete_expired_accounts() -> None:
                 return 0
 
             # DELETE em cascata — FKs configuradas com ON DELETE CASCADE
-            await db.execute(
-                delete(User).where(User.id.in_(expired_ids))
-            )
+            await db.execute(delete(User).where(User.id.in_(expired_ids)))
             await db.commit()
             return len(expired_ids)
 

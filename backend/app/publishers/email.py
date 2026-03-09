@@ -28,8 +28,7 @@ def _sections_to_html(sections: list[dict]) -> str:
         content = _escape(s.get("content", ""))
         if heading:
             parts.append(
-                f'<h2 style="color:#111;font-size:18px;margin:24px 0 8px;">'
-                f"{heading}</h2>"
+                f'<h2 style="color:#111;font-size:18px;margin:24px 0 8px;">' f"{heading}</h2>"
             )
         if content:
             parts.append(
@@ -55,7 +54,7 @@ def _build_html(copy_json: dict) -> str:
         "</head>"
         '<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">'
         '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">'
-        "<tr><td align=\"center\">"
+        '<tr><td align="center">'
         '<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;">'
         '<tr><td style="padding:32px 40px;">'
         f'<span style="display:none;font-size:1px;color:#fefefe;max-height:0;max-width:0;opacity:0;overflow:hidden;">{preview}</span>'
@@ -85,9 +84,7 @@ def _send_via_resend(html: str, subject: str, recipient: str) -> str:
         "html": html,
     }
     response = resend.Emails.send(params)
-    msg_id: str = (
-        response.get("id") if isinstance(response, dict) else getattr(response, "id", "")
-    )
+    msg_id: str = response.get("id") if isinstance(response, dict) else getattr(response, "id", "")
     return msg_id
 
 

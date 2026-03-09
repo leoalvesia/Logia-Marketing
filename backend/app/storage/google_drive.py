@@ -44,9 +44,7 @@ def upload_image(image_path: str) -> str:
         )
 
     if not settings.GOOGLE_DRIVE_FOLDER_ID:
-        raise RuntimeError(
-            "GOOGLE_DRIVE_FOLDER_ID não configurado. Defina no .env."
-        )
+        raise RuntimeError("GOOGLE_DRIVE_FOLDER_ID não configurado. Defina no .env.")
 
     try:
         creds = service_account.Credentials.from_service_account_file(
@@ -59,14 +57,8 @@ def upload_image(image_path: str) -> str:
             "name": os.path.basename(image_path),
             "parents": [settings.GOOGLE_DRIVE_FOLDER_ID],
         }
-        media = MediaFileUpload(
-            image_path, mimetype=_guess_mime(image_path), resumable=True
-        )
-        file = (
-            svc.files()
-            .create(body=file_metadata, media_body=media, fields="id")
-            .execute()
-        )
+        media = MediaFileUpload(image_path, mimetype=_guess_mime(image_path), resumable=True)
+        file = svc.files().create(body=file_metadata, media_body=media, fields="id").execute()
         file_id: str = file["id"]
 
         svc.permissions().create(

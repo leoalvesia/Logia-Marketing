@@ -22,9 +22,7 @@ class ArtType(str, enum.Enum):
 
 class Art(Base):
     __tablename__ = "arts"
-    __table_args__ = (
-        Index("ix_arts_pipeline_type", "pipeline_id", "type"),
-    )
+    __table_args__ = (Index("ix_arts_pipeline_type", "pipeline_id", "type"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     copy_id: Mapped[str] = mapped_column(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -75,9 +75,9 @@ class TestHealthEndpoint:
 
     async def test_retorna_503_quando_db_falha(self, async_engine):
         """Quando DB falha, deve retornar 503."""
+
         async def _failing_db():
-            from sqlalchemy import text
-            from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+            from sqlalchemy.ext.asyncio import AsyncSession
             from sqlalchemy.exc import OperationalError
 
             # Sessão que falha no execute
