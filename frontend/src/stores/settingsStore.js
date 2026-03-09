@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware";
+import { settingsApi } from "@/services/pipelineApi";
 
 const DEFAULT_SOCIAL_ACCOUNTS = [
   { id: "instagram", name: "Instagram", token: null, status: "disconnected", expiresAt: null },
@@ -14,12 +15,7 @@ const DEFAULT_SOCIAL_ACCOUNTS = [
   { id: "email", name: "E-mail (SMTP)", token: null, status: "disconnected", expiresAt: null },
 ];
 
-const DEFAULT_PROFILES = [
-  { id: "p1", handle: "@resultadosdigitais", platform: "instagram", active: true, priority: 1 },
-  { id: "p2", handle: "@neilpatel", platform: "instagram", active: true, priority: 2 },
-  { id: "p3", handle: "resultadosdigitais", platform: "linkedin", active: false, priority: 3 },
-  { id: "p4", handle: "@hubspotbr", platform: "twitter", active: true, priority: 4 },
-];
+// Profiles are fetched from the API — no hardcoded seed data.
 
 const DEFAULT_BRAND = {
   primaryColor: "#6366F1",
@@ -39,10 +35,11 @@ export const useSettingsStore = create(
   persist(
     immer((set, get) => ({
       socialAccounts: DEFAULT_SOCIAL_ACCOUNTS,
-      monitoredProfiles: DEFAULT_PROFILES,
+      monitoredProfiles: [],
       brand: DEFAULT_BRAND,
       persona: DEFAULT_PERSONA,
       loading: false,
+      profilesLoaded: false,
 
       // ── Social accounts ──────────────────────────────────────
       connectAccount: (id) =>
@@ -67,35 +64,68 @@ export const useSettingsStore = create(
         }),
 
       // ── Monitored profiles ───────────────────────────────────
-      addProfile: (handle, platform) =>
-        set((s) => {
-          const id = `p${Date.now()}`;
-          s.monitoredProfiles.push({
-            id,
-            handle,
-            platform,
-            active: true,
-            priority: s.monitoredProfiles.length + 1,
+      fetchProfiles: async () => {
+        set((s) => { s.loading = true; });
+        try {
+          const data = await settingsApi.getProfiles();
+          set((s) => {
+            s.monitoredProfiles = data.profiles ?? [];
+            s.profilesLoaded = true;
+            s.loading = false;
           });
-        }),
+        } catch {
+          set((s) => { s.loading = false; });
+        }
+      },
 
-      removeProfile: (id) =>
+      addProfile: async (handle, platform) => {
+        try {
+          await settingsApi.addProfile(platform, handle);
+          // Re-fetch to get server-assigned ID and created_at
+          await get().fetchProfiles();
+        } catch (e) {
+          // Fallback: optimistic local add for offline/dev
+          set((s) => {
+            s.monitoredProfiles.push({
+              id: `local-${Date.now()}`,
+              handle: handle.replace(/^@/, ""),
+              platform,
+              active: true,
+              created_at: new Date().toISOString(),
+            });
+          });
+        }
+      },
+
+      removeProfile: async (id) => {
         set((s) => {
           s.monitoredProfiles = s.monitoredProfiles.filter((p) => p.id !== id);
-        }),
+        });
+        try {
+          await settingsApi.deleteProfile(id);
+        } catch {
+          // re-fetch to restore consistent state
+          await get().fetchProfiles();
+        }
+      },
 
-      toggleProfile: (id) =>
+      toggleProfile: async (id) => {
         set((s) => {
           const p = s.monitoredProfiles.find((p) => p.id === id);
           if (p) p.active = !p.active;
-        }),
+        });
+        try {
+          await settingsApi.toggleProfile(id);
+        } catch {
+          await get().fetchProfiles();
+        }
+      },
 
       reorderProfiles: (from, to) =>
         set((s) => {
           const profiles = [...s.monitoredProfiles];
           const [moved] = profiles.splice(from, 1);
           profiles.splice(to, 0, moved);
-          profiles.forEach((p, i) => { p.priority = i + 1; });
           s.monitoredProfiles = profiles;
         }),
 

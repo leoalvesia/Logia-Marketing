@@ -19,6 +19,11 @@ _CTX = {
     "plataformas_origem": ["linkedin", "youtube"],
     "nicho_usuario": "marketing digital para consultores",
     "persona_usuario": "consultores de marketing B2B",
+    "dados_pesquisa": (
+        "Empresas que adotaram IA reduziram 70% do tempo de produção. "
+        "ROI médio de 180% em 6 meses. "
+        "3x mais conteúdo publicado com a mesma equipe."
+    ),
 }
 
 
@@ -474,7 +479,11 @@ class TestConstants:
         from app.constants import CHANNEL_LIMITS
 
         assert set(CHANNEL_LIMITS.keys()) == {
-            "instagram", "linkedin", "twitter", "youtube", "email"
+            "instagram",
+            "linkedin",
+            "twitter",
+            "youtube",
+            "email",
         }
 
     def test_limites_numericos_positivos(self):
@@ -482,9 +491,7 @@ class TestConstants:
 
         for channel, limits in CHANNEL_LIMITS.items():
             for key, val in limits.items():
-                assert isinstance(val, int) and val > 0, (
-                    f"{channel}.{key} = {val} deve ser int > 0"
-                )
+                assert isinstance(val, int) and val > 0, f"{channel}.{key} = {val} deve ser int > 0"
 
     def test_limites_refletidos_nos_prompts(self):
         """Os limites do Twitter devem aparecer no system_prompt do TwitterCopyAgent."""
@@ -504,14 +511,17 @@ class TestConstants:
         from app.agents.copy.email import EmailCopyAgent
 
         agents = [
-            InstagramCopyAgent(), LinkedinCopyAgent(), TwitterCopyAgent(),
-            YoutubeCopyAgent(), EmailCopyAgent(),
+            InstagramCopyAgent(),
+            LinkedinCopyAgent(),
+            TwitterCopyAgent(),
+            YoutubeCopyAgent(),
+            EmailCopyAgent(),
         ]
         for agent in agents:
             prompt = agent._system_prompt()
-            assert "NUNCA invente dados" in prompt, (
-                f"{agent.CHANNEL}: _NEVER_INVENT_CLAUSE ausente no system_prompt"
-            )
+            assert (
+                "NUNCA invente dados" in prompt
+            ), f"{agent.CHANNEL}: _NEVER_INVENT_CLAUSE ausente no system_prompt"
 
     def test_channel_action_usado_no_user_prompt(self):
         """_CHANNEL_ACTION de cada agente deve aparecer no user_prompt gerado."""
@@ -522,6 +532,52 @@ class TestConstants:
             agent = AgentCls()
             prompt = agent._user_prompt(_CTX)
             assert agent._CHANNEL_ACTION in prompt
+
+    def test_user_prompt_contem_secao_obrigatoria(self):
+        """User prompt deve conter a seção 'USE OBRIGATORIAMENTE' em todos os agentes."""
+        from app.agents.copy.instagram import InstagramCopyAgent
+        from app.agents.copy.linkedin import LinkedinCopyAgent
+        from app.agents.copy.twitter import TwitterCopyAgent
+        from app.agents.copy.youtube import YoutubeCopyAgent
+        from app.agents.copy.email import EmailCopyAgent
+
+        for AgentCls in (
+            InstagramCopyAgent,
+            LinkedinCopyAgent,
+            TwitterCopyAgent,
+            YoutubeCopyAgent,
+            EmailCopyAgent,
+        ):
+            agent = AgentCls()
+            prompt = agent._user_prompt(_CTX)
+            assert (
+                "USE OBRIGATORIAMENTE" in prompt
+            ), f"{agent.CHANNEL}: seção obrigatória ausente no user_prompt"
+
+    def test_user_prompt_inclui_todos_campos_do_contexto(self):
+        """Tema, resumo, fonte, nicho, persona e dados_pesquisa devem aparecer no prompt."""
+        from app.agents.copy.linkedin import LinkedinCopyAgent
+
+        prompt = LinkedinCopyAgent()._user_prompt(_CTX)
+
+        assert _CTX["tema"] in prompt
+        assert _CTX["resumo"] in prompt
+        assert _CTX["link_origem"] in prompt
+        assert _CTX["nicho_usuario"] in prompt
+        assert _CTX["persona_usuario"] in prompt
+        assert _CTX["dados_pesquisa"] in prompt
+
+    def test_user_prompt_inclui_source_content_quando_disponivel(self):
+        """source_content extra deve aparecer no prompt se presente no contexto."""
+        from app.agents.copy.instagram import InstagramCopyAgent
+
+        ctx_com_extra = {
+            **_CTX,
+            "source_content": "Trecho extra extraído do artigo original sobre IA.",
+        }
+        prompt = InstagramCopyAgent()._user_prompt(ctx_com_extra)
+        assert "CONTEÚDO DA FONTE" in prompt
+        assert "Trecho extra" in prompt
 
 
 # ══════════════════════════════════════════════════════════════════════════════

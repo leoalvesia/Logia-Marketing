@@ -8,7 +8,6 @@ Admin only (X-Admin-Key):
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, select
@@ -137,9 +136,7 @@ async def get_cost_history(
 @router.get("/live", dependencies=[Depends(_require_admin)])
 async def get_cost_today(db: AsyncSession = Depends(get_db)) -> dict:
     """Custo acumulado do dia atual (desde meia-noite UTC)."""
-    today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
     q = await db.execute(
         select(

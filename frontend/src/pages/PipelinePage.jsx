@@ -8,7 +8,7 @@ import TopicList from "@/components/Pipeline/TopicList";
 import CopyEditor from "@/components/Pipeline/CopyEditor";
 import ArtViewer from "@/components/Pipeline/ArtViewer";
 import PublishPanel from "@/components/Pipeline/PublishPanel";
-import pipelineApi from "@/services/pipelineApi";
+import { pipelineApi } from "@/services/pipelineApi";
 
 // ── Pipeline stage steps for progress indicator ───────────────────────────────
 const STEPS = [
@@ -152,8 +152,10 @@ export default function PipelinePage() {
     currentPipeline,
     pipelineState,
     selectedChannels,
+    topics,
     setPipeline,
     setPipelineState,
+    setTopics,
     selectTopic,
     reset,
   } = usePipelineStore();
@@ -161,9 +163,19 @@ export default function PipelinePage() {
   const [phase, setPhase] = useState("idle"); // idle | channel-select | pipeline
   const [startLoading, setStartLoading] = useState(false);
   const [topicLoadingId, setTopicLoadingId] = useState(null);
+  const [error, setError] = useState(null);
 
   // Connect websocket if there's an active pipeline
   usePipelineWebSocket(currentPipeline?.id);
+
+  // When WS pushes AWAITING_SELECTION, fetch topics from API
+  useEffect(() => {
+    if (pipelineState === "AWAITING_SELECTION" && currentPipeline?.id) {
+      pipelineApi.getTopics(currentPipeline.id)
+        .then((data) => setTopics(data.topics ?? []))
+        .catch((e) => console.error("Falha ao buscar tópicos:", e));
+    }
+  }, [pipelineState, currentPipeline?.id]);
 
   // Derive sub-phase from pipeline state for rendering
   function renderPipelineBody() {
@@ -175,6 +187,7 @@ export default function PipelinePage() {
       case "AWAITING_SELECTION":
         return (
           <TopicList
+            topics={topics}
             onSelect={handleSelectTopic}
             loadingId={topicLoadingId}
           />
@@ -221,20 +234,14 @@ export default function PipelinePage() {
 
   async function handleStartPipeline() {
     setStartLoading(true);
+    setError(null);
     try {
-      // In production: const pipeline = await pipelineApi.start(selectedChannels);
-      // Mock: jump directly to RESEARCHING
-      const mockPipeline = { id: `pl-${Date.now()}`, state: "RESEARCHING" };
-      setPipeline(mockPipeline);
-      setPipelineState("RESEARCHING");
+      const pipeline = await pipelineApi.start(selectedChannels);
+      setPipeline({ id: pipeline.session_id, state: pipeline.state });
       setPhase("pipeline");
-
-      // Simulate pipeline progression
-      await new Promise((r) => setTimeout(r, 2500));
-      setPipelineState("ORCHESTRATING");
-      await new Promise((r) => setTimeout(r, 2000));
-      setPipelineState("AWAITING_SELECTION");
+      // State updates (RESEARCHING → AWAITING_SELECTION) chegam via WebSocket
     } catch (e) {
+      setError(e.message || "Falha ao iniciar pipeline");
       console.error(e);
     } finally {
       setStartLoading(false);
@@ -243,13 +250,13 @@ export default function PipelinePage() {
 
   async function handleSelectTopic(topicId) {
     setTopicLoadingId(topicId);
+    setError(null);
     try {
       selectTopic(topicId);
-      // await pipelineApi.selectTopic(currentPipeline?.id, topicId);
-      setPipelineState("GENERATING_COPY");
-      await new Promise((r) => setTimeout(r, 3000));
-      setPipelineState("COPY_REVIEW");
+      await pipelineApi.selectTopic(currentPipeline?.id, topicId);
+      // Estado GENERATING_COPY → COPY_REVIEW chega via WebSocket
     } catch (e) {
+      setError(e.message || "Falha ao selecionar tema");
       console.error(e);
     } finally {
       setTopicLoadingId(null);
@@ -257,21 +264,36 @@ export default function PipelinePage() {
   }
 
   async function handleApproveCopy() {
-    // await pipelineApi.approveCopy(currentPipeline?.id, edits);
-    setPipelineState("GENERATING_ART");
-    await new Promise((r) => setTimeout(r, 2500));
-    setPipelineState("ART_REVIEW");
+    setError(null);
+    try {
+      await pipelineApi.approveCopy(currentPipeline?.id);
+      // Estado GENERATING_ART → ART_REVIEW chega via WebSocket
+    } catch (e) {
+      setError(e.message || "Falha ao aprovar copy");
+      console.error(e);
+    }
   }
 
   async function handleApproveArt(artId) {
-    // await pipelineApi.approveArt(currentPipeline?.id, artId);
-    setPipelineState("SCHEDULED");
+    setError(null);
+    try {
+      await pipelineApi.approveArt(currentPipeline?.id, artId);
+      // Estado SCHEDULED ou PUBLISHING chega via WebSocket
+    } catch (e) {
+      setError(e.message || "Falha ao aprovar arte");
+      console.error(e);
+    }
   }
 
   async function handlePublish() {
-    setPipelineState("PUBLISHING");
-    await new Promise((r) => setTimeout(r, 3000));
-    setPipelineState("PUBLISHED");
+    setError(null);
+    try {
+      await pipelineApi.publish(currentPipeline?.id, { schedule: false });
+      // Estado PUBLISHED chega via WebSocket (ou pela resposta HTTP)
+    } catch (e) {
+      setError(e.message || "Falha ao publicar");
+      console.error(e);
+    }
   }
 
   function handleRestart() {
@@ -312,6 +334,13 @@ export default function PipelinePage() {
           </div>
         )}
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="text-xs text-red-400 bg-red-950/30 border border-red-800/40 rounded-lg px-4 py-3">
+          {error}
+        </div>
+      )}
 
       {/* Step progress */}
       {phase === "pipeline" && pipelineState && (

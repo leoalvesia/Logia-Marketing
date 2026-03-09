@@ -8,8 +8,11 @@ os top 10 temas ordenados por score decrescente.
 from __future__ import annotations
 
 import logging
+import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
+import httpx
 from anthropic import Anthropic
 from rapidfuzz import fuzz
 
@@ -19,9 +22,11 @@ logger = logging.getLogger(__name__)
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
-_SIMILARITY_THRESHOLD = 70   # % mínimo (token_set_ratio) para considerar mesmo tema
+_SIMILARITY_THRESHOLD = 70  # % mínimo (token_set_ratio) para considerar mesmo tema
 _MAX_TOPICS = 10
 _HAIKU_MODEL = "claude-haiku-4-5-20251001"
+_URL_VERIFY_TIMEOUT = 5.0  # segundos por requisição HEAD
+_URL_VERIFY_WORKERS = 5  # threads paralelas na verificação
 
 # ── Ponto de entrada público ──────────────────────────────────────────────────
 
@@ -36,7 +41,9 @@ def orchestrate(raw_results: list[dict], user_nicho: str) -> list[dict]:
 
     Returns:
         Lista de até 10 temas no formato padronizado, ordenados por score
-        decrescente. Nunca lança exceção — retorna lista vazia em erro.
+        decrescente. Cada item inclui ``source_verified`` indicando se a URL
+        respondeu com HTTP 2xx/3xx. Nunca lança exceção — retorna lista vazia
+        em erro.
     """
     if not raw_results:
         return []
@@ -46,11 +53,7 @@ def orchestrate(raw_results: list[dict], user_nicho: str) -> list[dict]:
         groups = _group_by_theme(raw_results)
 
         # 2. Número de plataformas distintas em toda a coleta (normalização)
-        all_platforms = {
-            r.get("platform", "")
-            for r in raw_results
-            if r.get("platform")
-        }
+        all_platforms = {r.get("platform", "") for r in raw_results if r.get("platform")}
         total_platforms = max(1, len(all_platforms))
 
         # 3. Pontuar cada grupo
@@ -64,7 +67,22 @@ def orchestrate(raw_results: list[dict], user_nicho: str) -> list[dict]:
             if not item.get("link_origem"):
                 item["score"] = 0.0
 
-        # 5. Ordenar por score decrescente
+        # 5. Verificar URLs em paralelo — nunca retornar fonte sem validação
+        unique_urls = list({item["link_origem"] for item in scored if item.get("link_origem")})
+        verified_map = _verify_urls_parallel(unique_urls)
+
+        for item in scored:
+            url = item.get("link_origem", "")
+            if url:
+                item["source_verified"] = verified_map.get(url, False)
+                if not item["source_verified"]:
+                    # Penalidade: URL morta reduz relevância do tema
+                    item["score"] = round(item["score"] * 0.5, 4)
+                    logger.warning(f"orchestrator: URL não verificável: {url}")
+            else:
+                item["source_verified"] = False
+
+        # 6. Ordenar por score decrescente (após penalidades)
         scored.sort(key=lambda x: x["score"], reverse=True)
 
         return scored[:_MAX_TOPICS]
@@ -113,26 +131,24 @@ def _build_scored_item(
     resumo = _extract_resumo(representative.get("description", ""))
     link_origem = _best_url(group)
 
-    unique_platforms = sorted({
-        item.get("platform", "")
-        for item in group
-        if item.get("platform")
-    })
+    unique_platforms = sorted({item.get("platform", "") for item in group if item.get("platform")})
 
     # Componentes do score
-    freq_entre_canais = len(unique_platforms) / total_platforms          # 0.0–1.0
+    freq_entre_canais = len(unique_platforms) / total_platforms  # 0.0–1.0
     recencia = max(_calc_recencia(item.get("published_at", "")) for item in group)
-    relevancia_nicho = _score_nicho_relevance(titulo, resumo, nicho)    # 0.0–1.0
+    relevancia_nicho = _score_nicho_relevance(titulo, resumo, nicho)  # 0.0–1.0
 
     score = round(
-        (freq_entre_canais * 0.4)
-        + (recencia * 0.35)
-        + (relevancia_nicho * 0.25),
+        (freq_entre_canais * 0.4) + (recencia * 0.35) + (relevancia_nicho * 0.25),
         4,
     )
 
     # Data de publicação do item mais recente do grupo
     publicado_em = _best_date(group)
+
+    # Extrair dados numéricos/estatísticas da descrição completa para enriquecer o copy
+    full_description = representative.get("description", "")
+    dados_pesquisa = _extract_statistics(full_description)
 
     return {
         "titulo": titulo,
@@ -141,6 +157,8 @@ def _build_scored_item(
         "plataformas": unique_platforms,
         "score": score,
         "publicado_em": publicado_em,
+        "dados_pesquisa": dados_pesquisa,
+        "source_verified": False,  # atualizado em orchestrate() após HEAD request
     }
 
 
@@ -150,6 +168,26 @@ def _extract_resumo(description: str) -> str:
         return ""
     sentences = [s.strip() for s in description.split(".") if s.strip()]
     return ". ".join(sentences[:3]) + ("." if sentences else "")
+
+
+def _extract_statistics(description: str) -> str:
+    """Extrai frases com dados numéricos da descrição (percentuais, valores, multiplicadores).
+
+    Exemplos capturados: "ROI de 180%", "cresceu 3x", "R$ 1.000", "42 vezes mais".
+    Retorna até 3 frases concatenadas, ou string vazia se não houver dados numéricos.
+    """
+    if not description:
+        return ""
+    sentences = [s.strip() for s in re.split(r"[.!?\n]", description) if s.strip()]
+    _NUMBER_RE = re.compile(
+        r"\d+\s*%"  # percentuais: 70%, 3,5%
+        r"|\bR\$\s*[\d\.,]+"  # valores em reais: R$ 1.000
+        r"|\d+[xX]\b"  # multiplicadores: 3x, 10X
+        r"|\d+\s*vezes"  # "42 vezes"
+        r"|\d{2,}"  # números com 2+ dígitos: "150 empresas", "42 ferramentas"
+    )
+    stats = [s for s in sentences if _NUMBER_RE.search(s)]
+    return ". ".join(stats[:3]) + ("." if stats else "")
 
 
 def _best_url(group: list[dict]) -> str:
@@ -204,6 +242,49 @@ def _parse_date(value: str) -> datetime | None:
         return None
 
 
+# ── Verificação de URLs ────────────────────────────────────────────────────────
+
+
+def _verify_url(url: str) -> bool:
+    """Faz HEAD request para confirmar que a URL está acessível.
+
+    Retorna True se o servidor responder com HTTP < 400. Retorna False para
+    4xx/5xx ou qualquer erro de conexão. Timeout de 5 s para não bloquear.
+
+    Nunca lança exceção — falha silenciosa é tratada como não verificada.
+    """
+    if not url or not url.startswith(("http://", "https://")):
+        return False
+    try:
+        with httpx.Client(
+            timeout=_URL_VERIFY_TIMEOUT,
+            follow_redirects=True,
+        ) as client:
+            resp = client.head(url, headers={"User-Agent": "Logia-Verifier/1.0"})
+            return resp.status_code < 400
+    except Exception:
+        return False
+
+
+def _verify_urls_parallel(urls: list[str]) -> dict[str, bool]:
+    """Verifica uma lista de URLs em paralelo com ThreadPoolExecutor.
+
+    Retorna dict {url: bool} para cada URL fornecida.
+    """
+    if not urls:
+        return {}
+    results: dict[str, bool] = {}
+    with ThreadPoolExecutor(max_workers=_URL_VERIFY_WORKERS) as executor:
+        future_to_url = {executor.submit(_verify_url, url): url for url in urls}
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                results[url] = future.result()
+            except Exception:
+                results[url] = False
+    return results
+
+
 # ── Relevância ao nicho via Claude Haiku ─────────────────────────────────────
 
 
@@ -229,6 +310,11 @@ def _score_nicho_relevance(titulo: str, resumo: str, nicho: str) -> float:
                         f"Nicho: {nicho}\n"
                         f"Tema: {titulo}\n"
                         f"Resumo: {resumo[:300]}\n\n"
+                        f"REGRAS OBRIGATÓRIAS:\n"
+                        f"- NÃO invente URLs, estudos, estatísticas ou fontes.\n"
+                        f"- NÃO cite percentuais ou números sem fonte real.\n"
+                        f"- Use 'segundo tendências do setor' quando não há dado exato.\n"
+                        f"- Avalie APENAS com base no texto fornecido acima.\n\n"
                         f"Responda APENAS com um número decimal entre 0 e 1, "
                         f"sem texto adicional. Exemplo: 0.8"
                     ),

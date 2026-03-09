@@ -12,10 +12,9 @@ from __future__ import annotations
 import asyncio
 import statistics
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -27,6 +26,7 @@ router = APIRouter()
 
 # ── Admin auth ─────────────────────────────────────────────────────────────────
 
+
 async def _require_admin(x_admin_key: str = Header(..., alias="X-Admin-Key")) -> None:
     if not settings.ADMIN_KEY:
         raise HTTPException(status_code=503, detail="ADMIN_KEY não configurado")
@@ -36,10 +36,12 @@ async def _require_admin(x_admin_key: str = Header(..., alias="X-Admin-Key")) ->
 
 # ── /version (público) ─────────────────────────────────────────────────────────
 
+
 @router.get("/version", tags=["version"])
 async def get_version() -> dict:
     """Versão semântica da aplicação e timestamp do último deploy."""
     import pathlib
+
     last_deploy: str | None = None
     try:
         ts_file = pathlib.Path("/app/.deploy_ts")
@@ -57,6 +59,7 @@ async def get_version() -> dict:
 
 # ── /admin/metrics ─────────────────────────────────────────────────────────────
 
+
 @router.get("/metrics", dependencies=[Depends(_require_admin)])
 async def get_metrics(db: AsyncSession = Depends(get_db)) -> dict:
     """KPIs completos para o ProductionDashboard — atualiza a cada 30s."""
@@ -64,9 +67,9 @@ async def get_metrics(db: AsyncSession = Depends(get_db)) -> dict:
     now = datetime.now(timezone.utc)
 
     # Janelas de tempo
-    t1h  = now - timedelta(hours=1)
+    t1h = now - timedelta(hours=1)
     t24h = now - timedelta(hours=24)
-    t7d  = now - timedelta(days=7)
+    t7d = now - timedelta(days=7)
     t14d = now - timedelta(days=14)
     t30d = now - timedelta(days=30)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -95,20 +98,21 @@ async def get_metrics(db: AsyncSession = Depends(get_db)) -> dict:
 
 # ── Helpers de agregação ───────────────────────────────────────────────────────
 
+
 async def _system_metrics(db, now, t1h, t24h, t7d, t30d) -> dict:
     from app.models.request_log import RequestLog
 
     async def _uptime_pct(since: datetime) -> float:
         total_q = await db.execute(
-            select(func.count(RequestLog.id))
-            .where(RequestLog.timestamp >= since)
+            select(func.count(RequestLog.id)).where(RequestLog.timestamp >= since)
         )
         total = total_q.scalar_one() or 0
         if total == 0:
             return 100.0
         err_q = await db.execute(
-            select(func.count(RequestLog.id))
-            .where(RequestLog.timestamp >= since, RequestLog.status_code >= 500)
+            select(func.count(RequestLog.id)).where(
+                RequestLog.timestamp >= since, RequestLog.status_code >= 500
+            )
         )
         errors = err_q.scalar_one() or 0
         return round((1 - errors / total) * 100, 2)
@@ -125,9 +129,11 @@ async def _system_metrics(db, now, t1h, t24h, t7d, t30d) -> dict:
         durations = [r[0] for r in rows_q.all()]
         if not durations:
             return {"p50": 0, "p95": 0, "p99": 0}
+
         def pct(data, p):
             idx = int(len(data) * p / 100)
             return data[min(idx, len(data) - 1)]
+
         return {
             "p50": pct(durations, 50),
             "p95": pct(durations, 95),
@@ -147,11 +153,12 @@ async def _system_metrics(db, now, t1h, t24h, t7d, t30d) -> dict:
 
     # WebSocket connections
     from app.ws_manager import manager
+
     ws_connections = len(manager.active)
 
     return {
         "uptime_24h_pct": uptime_24h,
-        "uptime_7d_pct":  uptime_7d,
+        "uptime_7d_pct": uptime_7d,
         "uptime_30d_pct": uptime_30d,
         "error_rate_1h_pct": error_rate,
         "latency_ms": latency,
@@ -162,15 +169,15 @@ async def _system_metrics(db, now, t1h, t24h, t7d, t30d) -> dict:
 
 async def _error_rate_1h(db, t1h) -> float:
     from app.models.request_log import RequestLog
-    total_q = await db.execute(
-        select(func.count(RequestLog.id)).where(RequestLog.timestamp >= t1h)
-    )
+
+    total_q = await db.execute(select(func.count(RequestLog.id)).where(RequestLog.timestamp >= t1h))
     total = total_q.scalar_one() or 0
     if total == 0:
         return 0.0
     err_q = await db.execute(
-        select(func.count(RequestLog.id))
-        .where(RequestLog.timestamp >= t1h, RequestLog.status_code >= 500)
+        select(func.count(RequestLog.id)).where(
+            RequestLog.timestamp >= t1h, RequestLog.status_code >= 500
+        )
     )
     errors = err_q.scalar_one() or 0
     return round(errors / total * 100, 2)
@@ -179,6 +186,7 @@ async def _error_rate_1h(db, t1h) -> float:
 async def _celery_queues() -> dict:
     try:
         from app.cache.redis_cache import _get_client
+
         client = _get_client()
         copy_len, art_len, research_len = await asyncio.gather(
             client.llen("copy"),
@@ -187,8 +195,8 @@ async def _celery_queues() -> dict:
             return_exceptions=True,
         )
         return {
-            "copy":     copy_len if isinstance(copy_len, int) else 0,
-            "art":      art_len if isinstance(art_len, int) else 0,
+            "copy": copy_len if isinstance(copy_len, int) else 0,
+            "art": art_len if isinstance(art_len, int) else 0,
             "research": research_len if isinstance(research_len, int) else 0,
         }
     except Exception:
@@ -208,15 +216,13 @@ async def _user_metrics(db, now, t24h, t7d, t14d) -> dict:
 
     # Ativos: tiveram pipeline hoje / esta semana
     active_24h_q = await db.execute(
-        select(func.count(func.distinct(Pipeline.user_id)))
-        .where(Pipeline.created_at >= t24h)
+        select(func.count(func.distinct(Pipeline.user_id))).where(Pipeline.created_at >= t24h)
     )
     active_7d_q = await db.execute(
-        select(func.count(func.distinct(Pipeline.user_id)))
-        .where(Pipeline.created_at >= t7d)
+        select(func.count(func.distinct(Pipeline.user_id))).where(Pipeline.created_at >= t7d)
     )
     active_24h = active_24h_q.scalar_one() or 0
-    active_7d  = active_7d_q.scalar_one() or 0
+    active_7d = active_7d_q.scalar_one() or 0
 
     # Onboarding completion
     completed_q = await db.execute(
@@ -237,10 +243,7 @@ async def _user_metrics(db, now, t24h, t7d, t14d) -> dict:
         .group_by(func.date(User.created_at))
         .order_by(func.date(User.created_at))
     )
-    signups_by_day = [
-        {"day": str(day), "count": cnt}
-        for day, cnt in signups_q.all()
-    ]
+    signups_by_day = [{"day": str(day), "count": cnt} for day, cnt in signups_q.all()]
 
     return {
         "total": total_users,
@@ -253,7 +256,7 @@ async def _user_metrics(db, now, t24h, t7d, t14d) -> dict:
 
 async def _product_metrics(db, now, t24h, t7d) -> dict:
     from app.models.pipeline import Pipeline, PipelineState
-    from app.models.copy import Copy, CopyChannel, CopyStatus
+    from app.models.copy import Copy, CopyStatus
 
     # Pipelines
     async def _pipeline_counts(since):
@@ -301,8 +304,7 @@ async def _product_metrics(db, now, t24h, t7d) -> dict:
     # Tempo médio do pipeline (PUBLISHED) em minutos — últimos 7 dias
     # updated_at - created_at para pipelines PUBLISHED
     avg_time_q = await db.execute(
-        select(Pipeline.created_at, Pipeline.updated_at)
-        .where(
+        select(Pipeline.created_at, Pipeline.updated_at).where(
             Pipeline.created_at >= t7d,
             Pipeline.state == PipelineState.PUBLISHED,
         )
@@ -356,9 +358,9 @@ async def _cost_metrics(db, now, month_start, t30d) -> dict:
 
     # Projeção até fim do mês
     days_in_month = 30
-    monthly_projection = round(
-        month_data["cost_usd"] / day_of_month * days_in_month, 2
-    ) if day_of_month > 0 else 0.0
+    monthly_projection = (
+        round(month_data["cost_usd"] / day_of_month * days_in_month, 2) if day_of_month > 0 else 0.0
+    )
 
     # Tokens por agente (últimos 30 dias)
     agents_q = await db.execute(
@@ -384,9 +386,9 @@ async def _cost_metrics(db, now, month_start, t30d) -> dict:
 
     # Custo médio por publicação
     from app.models.pipeline import Pipeline, PipelineState
+
     pub_count_q = await db.execute(
-        select(func.count(Pipeline.id))
-        .where(
+        select(func.count(Pipeline.id)).where(
             Pipeline.created_at >= month_start,
             Pipeline.state == PipelineState.PUBLISHED,
         )

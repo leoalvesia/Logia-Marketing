@@ -161,13 +161,50 @@ class CopyAgent:
 
     @staticmethod
     def _build_context_header(context: Dict[str, Any]) -> str:
-        """Formata as chaves do contexto como cabeçalho de prompt."""
+        """Formata o contexto da pesquisa como seção obrigatória no user prompt.
+
+        Estrutura:
+          1. Cabeçalho imperativo — instrui o LLM a usar os dados abaixo
+          2. Nicho + Persona — âncora da voz e do público-alvo
+          3. Tema + Resumo — conteúdo principal da fonte
+          4. Fonte verificada — URL de origem (nunca inventada)
+          5. Dados da pesquisa — estatísticas/números extraídos da fonte
+          6. source_content/insights — conteúdo bruto extra, se disponível
+          7. Contexto de distribuição — plataformas onde o tema foi encontrado
+        """
         platforms = ", ".join(context.get("plataformas_origem", []))
-        return (
-            f"Nicho do usuário: {context.get('nicho_usuario', '')}\n"
-            f"Persona-alvo: {context.get('persona_usuario', '')}\n"
-            f"Tema: {context.get('tema', '')}\n"
-            f"Resumo: {context.get('resumo', '')}\n"
-            f"Plataformas de origem: {platforms}\n"
-            f"Link da fonte: {context.get('link_origem', '')}\n"
+
+        # Campos opcionais: dados numéricos e conteúdo extra da fonte
+        dados = context.get("dados_pesquisa", "") or context.get("statistics", "") or ""
+        source_content = (
+            context.get("source_content", "")
+            or context.get("insights", "")
+            or context.get("raw_data", "")
+            or ""
         )
+
+        lines = [
+            "═══════════════════════════════════════════════════",
+            "USE OBRIGATORIAMENTE os dados abaixo para embasar o conteúdo.",
+            "NÃO invente fatos, percentuais ou URLs que não estejam aqui.",
+            "Quando não houver dado exato, use 'segundo tendências do setor'.",
+            "═══════════════════════════════════════════════════",
+            "",
+            f"NICHO: {context.get('nicho_usuario', '')} | PERSONA: {context.get('persona_usuario', '')}",
+            "",
+            f"TEMA: {context.get('tema', '')}",
+            "",
+            f"RESUMO: {context.get('resumo', '')}",
+            "",
+            f"FONTE: {context.get('link_origem', '')}",
+        ]
+
+        if dados:
+            lines += ["", f"DADOS DA PESQUISA: {dados}"]
+
+        if source_content:
+            lines += ["", f"CONTEÚDO DA FONTE: {source_content[:600]}"]
+
+        lines += ["", f"PLATAFORMAS DE ORIGEM: {platforms}", ""]
+
+        return "\n".join(lines)

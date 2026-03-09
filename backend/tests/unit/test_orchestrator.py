@@ -13,8 +13,27 @@ from app.agents.research.orchestrator import (
     _extract_resumo,
     _group_by_theme,
     _parse_date,
+    _verify_url,
     orchestrate,
 )
+
+# ── Fixture global: desabilita requisições HTTP reais em todos os testes ──────
+# Todos os testes assumem URLs válidas por padrão; testes específicos sobrescrevem.
+
+
+@pytest.fixture(autouse=True)
+def mock_verify_url_always_true():
+    """Patcha _verify_url para retornar True em todos os testes.
+
+    Evita requisições HTTP reais nos testes unitários.
+    Testes de verificação de URL sobrescrevem com side_effect próprio.
+    """
+    with patch(
+        "app.agents.research.orchestrator._verify_url",
+        return_value=True,
+    ):
+        yield
+
 
 # ── Fixture de dados brutos ───────────────────────────────────────────────────
 
@@ -60,19 +79,26 @@ class TestOrchestrateContracts:
         with _with_mocked_nicho(0.7):
             result = orchestrate(raw, "marketing digital")
         for item in result:
-            assert item.get("link_origem"), (
-                f"item sem link_origem: {item.get('titulo')}"
-            )
+            assert item.get("link_origem"), f"item sem link_origem: {item.get('titulo')}"
 
     def test_schema_completo_de_cada_item(self):
         raw = _load_raw_results()
         with _with_mocked_nicho(0.7):
             result = orchestrate(raw, "marketing digital")
-        required_keys = {"titulo", "resumo", "link_origem", "plataformas", "score", "publicado_em"}
+        required_keys = {
+            "titulo",
+            "resumo",
+            "link_origem",
+            "plataformas",
+            "score",
+            "publicado_em",
+            "source_verified",
+            "dados_pesquisa",
+        }
         for item in result:
-            assert required_keys.issubset(item.keys()), (
-                f"chaves faltando: {required_keys - item.keys()}"
-            )
+            assert required_keys.issubset(
+                item.keys()
+            ), f"chaves faltando: {required_keys - item.keys()}"
 
     def test_score_entre_0_e_1(self):
         raw = _load_raw_results()
@@ -94,9 +120,9 @@ class TestOrchestrateContracts:
         with _with_mocked_nicho(0.7):
             result = orchestrate(raw, "marketing digital")
         for item in result:
-            assert item["link_origem"].startswith("https://"), (
-                f"URL inválida: {item['link_origem']}"
-            )
+            assert item["link_origem"].startswith(
+                "https://"
+            ), f"URL inválida: {item['link_origem']}"
 
     def test_top5_tem_link_origem(self):
         """Regra crítica: os 5 primeiros nunca devem ter link_origem vazio."""
@@ -268,8 +294,20 @@ class TestScoreCalculation:
 class TestGrouping:
     def test_titulos_similares_agrupados(self):
         items = [
-            {"title": "IA generativa transforma marketing", "description": "Desc", "url": "https://x.com/a", "published_at": "2026-03-05", "platform": "linkedin"},
-            {"title": "IA generativa está mudando o marketing digital", "description": "Desc", "url": "https://x.com/b", "published_at": "2026-03-05", "platform": "youtube"},
+            {
+                "title": "IA generativa transforma marketing",
+                "description": "Desc",
+                "url": "https://x.com/a",
+                "published_at": "2026-03-05",
+                "platform": "linkedin",
+            },
+            {
+                "title": "IA generativa está mudando o marketing digital",
+                "description": "Desc",
+                "url": "https://x.com/b",
+                "published_at": "2026-03-05",
+                "platform": "youtube",
+            },
         ]
         groups = _group_by_theme(items)
         assert len(groups) == 1
@@ -277,18 +315,54 @@ class TestGrouping:
 
     def test_titulos_distintos_nao_agrupados(self):
         items = [
-            {"title": "Email marketing B2B ROI", "description": "Desc", "url": "https://x.com/a", "published_at": "2026-03-05", "platform": "linkedin"},
-            {"title": "Podcast crescimento consultores", "description": "Desc", "url": "https://x.com/b", "published_at": "2026-03-05", "platform": "youtube"},
-            {"title": "TikTok para negócios B2B", "description": "Desc", "url": "https://x.com/c", "published_at": "2026-03-05", "platform": "instagram"},
+            {
+                "title": "Email marketing B2B ROI",
+                "description": "Desc",
+                "url": "https://x.com/a",
+                "published_at": "2026-03-05",
+                "platform": "linkedin",
+            },
+            {
+                "title": "Podcast crescimento consultores",
+                "description": "Desc",
+                "url": "https://x.com/b",
+                "published_at": "2026-03-05",
+                "platform": "youtube",
+            },
+            {
+                "title": "TikTok para negócios B2B",
+                "description": "Desc",
+                "url": "https://x.com/c",
+                "published_at": "2026-03-05",
+                "platform": "instagram",
+            },
         ]
         groups = _group_by_theme(items)
         assert len(groups) == 3
 
     def test_grupo_consolida_plataformas(self):
         raw = [
-            {"title": "Tema idêntico", "description": "Desc.", "url": "https://x.com/1", "published_at": "2026-03-05T10:00:00Z", "platform": "linkedin"},
-            {"title": "Tema idêntico", "description": "Desc.", "url": "https://x.com/2", "published_at": "2026-03-05T10:00:00Z", "platform": "youtube"},
-            {"title": "Tema idêntico", "description": "Desc.", "url": "https://x.com/3", "published_at": "2026-03-05T10:00:00Z", "platform": "instagram"},
+            {
+                "title": "Tema idêntico",
+                "description": "Desc.",
+                "url": "https://x.com/1",
+                "published_at": "2026-03-05T10:00:00Z",
+                "platform": "linkedin",
+            },
+            {
+                "title": "Tema idêntico",
+                "description": "Desc.",
+                "url": "https://x.com/2",
+                "published_at": "2026-03-05T10:00:00Z",
+                "platform": "youtube",
+            },
+            {
+                "title": "Tema idêntico",
+                "description": "Desc.",
+                "url": "https://x.com/3",
+                "published_at": "2026-03-05T10:00:00Z",
+                "platform": "instagram",
+            },
         ]
         with _with_mocked_nicho(0.5):
             result = orchestrate(raw, "marketing")
@@ -304,16 +378,14 @@ class TestGrouping:
 class TestCalcRecencia:
     def test_menos_de_48h_retorna_1(self):
         from datetime import timedelta
-        recent = (
-            datetime.now(timezone.utc) - timedelta(hours=24)
-        ).isoformat()
+
+        recent = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
         assert _calc_recencia(recent) == 1.0
 
     def test_entre_48h_e_7d_retorna_0_6(self):
         from datetime import timedelta
-        three_days_ago = (
-            datetime.now(timezone.utc) - timedelta(days=4)
-        ).isoformat()
+
+        three_days_ago = (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
         assert _calc_recencia(three_days_ago) == 0.6
 
     def test_mais_antigo_retorna_0_2(self):
@@ -326,9 +398,8 @@ class TestCalcRecencia:
 
     def test_formato_z_aceito(self):
         from datetime import timedelta
-        recent = (
-            datetime.now(timezone.utc) - timedelta(hours=1)
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        recent = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
         assert _calc_recencia(recent) == 1.0
 
 
@@ -443,6 +514,166 @@ class TestEdgeCases:
             result = orchestrate(raw, "marketing digital")
         assert isinstance(result, list)
         assert all(isinstance(item, dict) for item in result)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Extração de dados numéricos (dados_pesquisa)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+from app.agents.research.orchestrator import _extract_statistics
+
+
+class TestExtractStatistics:
+    def test_extrai_percentual(self):
+        text = "Empresas reduziram 70% do tempo de produção com IA."
+        assert "70%" in _extract_statistics(text)
+
+    def test_extrai_multiplicador_x(self):
+        text = "Crescimento de 3x em 6 meses após adoção da ferramenta."
+        result = _extract_statistics(text)
+        assert "3x" in result or "3X" in result.upper()
+
+    def test_extrai_valor_real(self):
+        text = "Economia média de R$ 15.000 por trimestre para PMEs."
+        assert "R$" in _extract_statistics(text)
+
+    def test_descricao_sem_numeros_retorna_vazio(self):
+        text = "Conteúdo de qualidade é fundamental para engajamento no LinkedIn."
+        assert _extract_statistics(text) == ""
+
+    def test_descricao_vazia_retorna_vazio(self):
+        assert _extract_statistics("") == ""
+
+    def test_limita_a_3_frases(self):
+        text = (
+            "Cresceu 100%. "
+            "Reduziu 50% dos custos. "
+            "ROI de 200% em 3 meses. "
+            "Mais 40% de leads qualificados. "
+        )
+        result = _extract_statistics(text)
+        assert result.count("%") <= 3
+
+    def test_todos_itens_tem_campo_dados_pesquisa(self):
+        raw = _load_raw_results()
+        with _with_mocked_nicho(0.7):
+            result = orchestrate(raw, "marketing digital")
+        for item in result:
+            assert "dados_pesquisa" in item
+            assert isinstance(item["dados_pesquisa"], str)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Verificação de source_verified
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSourceVerification:
+    """Testa a presença e semântica do campo source_verified."""
+
+    def test_url_valida_marca_source_verified_true(self):
+        """Quando _verify_url retorna True, source_verified deve ser True."""
+        raw = [
+            {
+                "title": "Tema com URL válida",
+                "description": "Conteúdo real.",
+                "url": "https://example.com/valida",
+                "published_at": "2026-03-06T10:00:00Z",
+                "platform": "linkedin",
+            }
+        ]
+        # autouse fixture já patchou _verify_url=True
+        with _with_mocked_nicho(0.7):
+            result = orchestrate(raw, "marketing")
+        assert result[0]["source_verified"] is True
+
+    def test_url_404_marca_source_verified_false(self):
+        """Quando _verify_url retorna False (ex: 404), source_verified é False."""
+        raw = [
+            {
+                "title": "Tema com URL morta",
+                "description": "Conteúdo real mas URL expirada.",
+                "url": "https://fgv.br/pesquisa/ia-pme-brasil-2026",
+                "published_at": "2026-03-06T10:00:00Z",
+                "platform": "instagram",
+            }
+        ]
+        with (
+            _with_mocked_nicho(0.7),
+            patch(
+                "app.agents.research.orchestrator._verify_url",
+                return_value=False,
+            ),
+        ):
+            result = orchestrate(raw, "marketing")
+        assert result[0]["source_verified"] is False
+
+    def test_url_morta_aplica_penalidade_de_score(self):
+        """URL não verificável deve reduzir o score em 50%."""
+        raw = [
+            {
+                "title": "Automação de email marketing para empresas B2B",
+                "description": "Sequências automatizadas aumentam conversão.",
+                "url": "https://example.com/email-automacao-b2b",
+                "published_at": "2026-03-06T10:00:00Z",
+                "platform": "linkedin",
+            },
+            {
+                "title": "TikTok orgânico crescimento marcas moda feminina",
+                "description": "Estratégias virais de curto prazo para varejo.",
+                "url": "https://exemplo-morto.com/tiktok-moda",
+                "published_at": "2026-03-06T10:00:00Z",
+                "platform": "instagram",
+            },
+        ]
+        with (
+            _with_mocked_nicho(0.7),
+            patch(
+                "app.agents.research.orchestrator._verify_url",
+                side_effect=lambda url: "morto" not in url,
+            ),
+        ):
+            result = orchestrate(raw, "marketing")
+
+        item_valido = next(r for r in result if "email" in r["titulo"].lower())
+        item_morto = next(r for r in result if "TikTok" in r["titulo"])
+        # Item com URL morta deve ter score menor que item com URL válida
+        assert item_morto["score"] < item_valido["score"]
+        assert item_morto["source_verified"] is False
+
+    def test_url_vazia_sem_source_verified(self):
+        """Item sem URL deve ter source_verified = False."""
+        raw = [
+            {
+                "title": "Tema sem URL alguma",
+                "description": "Conteúdo sem fonte.",
+                "url": "",
+                "published_at": "2026-03-06T10:00:00Z",
+                "platform": "twitter",
+            }
+        ]
+        with _with_mocked_nicho(0.5):
+            result = orchestrate(raw, "marketing")
+        assert result[0]["source_verified"] is False
+
+    def test_todos_items_tem_campo_source_verified(self):
+        """source_verified deve estar presente em todos os itens retornados."""
+        raw = _load_raw_results()
+        with _with_mocked_nicho(0.7):
+            result = orchestrate(raw, "marketing digital")
+        for item in result:
+            assert "source_verified" in item, f"source_verified ausente em: {item.get('titulo')}"
+            assert isinstance(item["source_verified"], bool)
+
+    def test_verify_url_rejeita_url_sem_schema(self):
+        """_verify_url retorna False para URLs sem http/https."""
+        # Sobrescreve o autouse para testar a função real
+        with patch("app.agents.research.orchestrator._verify_url", wraps=_verify_url):
+            # URLs sem schema devem retornar False imediatamente (sem request)
+            assert _verify_url("fgv.br/pesquisa") is False
+            assert _verify_url("") is False
+            assert _verify_url("ftp://nao-suportado.com") is False
 
 
 # importar datetime e timezone para uso nos testes

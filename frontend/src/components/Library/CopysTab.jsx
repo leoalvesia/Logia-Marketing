@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Search, Eye, Palette, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChannelBadge } from "@/components/ui/ChannelBadge";
-import { MOCK_COPIES } from "@/data/mockLibrary";
+import { useLibraryStore } from "@/stores/libraryStore";
 
 const PER_PAGE = 20;
 
@@ -12,6 +12,29 @@ const STATUS_CONFIG = {
   approved: { label: "Aprovado", bg: "bg-emerald-950/40 border-emerald-800/50", text: "text-emerald-400" },
   published: { label: "Publicado", bg: "bg-blue-950/40 border-blue-800/50", text: "text-blue-400" },
 };
+
+/** Extrai texto legível do objeto de conteúdo gerado pelo LLM (varia por canal). */
+function extractPreview(content, channel) {
+  if (!content || typeof content !== "object") return "";
+  const text =
+    content.caption ||
+    content.post ||
+    (Array.isArray(content.tweets) ? content.tweets[0] : null) ||
+    content.subject ||
+    content.roteiro ||
+    "";
+  const str = typeof text === "string" ? text : "";
+  return str.slice(0, 120) + (str.length > 120 ? "…" : "");
+}
+
+/** Extrai label de origem da source_url (ex: "hubspot.com"). */
+function sourceDomain(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url || "—";
+  }
+}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -41,11 +64,7 @@ function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-  // Show at most 5 page numbers
-  const visible = pages.slice(
-    Math.max(0, page - 3),
-    Math.min(totalPages, page + 2)
-  );
+  const visible = pages.slice(Math.max(0, page - 3), Math.min(totalPages, page + 2));
 
   return (
     <div className="flex items-center justify-center gap-1.5 pt-4">
@@ -68,10 +87,7 @@ function Pagination({ page, totalPages, onPage }) {
         <button
           key={p}
           onClick={() => onPage(p)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${p === page
-              ? "bg-[#6366F1] text-white"
-              : "text-[#9CA3AF] hover:bg-[#242424]"
-            }`}
+          className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${p === page ? "bg-[#6366F1] text-white" : "text-[#9CA3AF] hover:bg-[#242424]"}`}
         >
           {p}
         </button>
@@ -97,9 +113,10 @@ function Pagination({ page, totalPages, onPage }) {
 
 // ── Copy Card ─────────────────────────────────────────────────────────────────
 
-function CopyCard({ copy }) {
+function CopyCard({ copy, onApprove, onDelete }) {
   const cfg = STATUS_CONFIG[copy.status] ?? STATUS_CONFIG.draft;
-  const preview = copy.content.slice(0, 100) + (copy.content.length > 100 ? "…" : "");
+  const preview = extractPreview(copy.content, copy.channel);
+  const domain = sourceDomain(copy.source_url);
 
   return (
     <div className="group bg-[#1A1A1A] border border-[#2E2E2E] hover:border-[#6366F1]/30 rounded-xl p-4 transition-all duration-200 space-y-2.5">
@@ -116,13 +133,19 @@ function CopyCard({ copy }) {
         </time>
       </div>
 
-      {/* Topic */}
-      <p className="text-[10px] font-medium text-[#6366F1]">{copy.topic}</p>
+      {/* Source */}
+      {domain && (
+        <p className="text-[10px] font-medium text-[#6366F1] truncate" title={copy.source_url}>
+          {domain}
+        </p>
+      )}
 
       {/* Preview */}
-      <p className="text-xs text-[#9CA3AF] leading-relaxed">{preview}</p>
+      <p className="text-xs text-[#9CA3AF] leading-relaxed">
+        {preview || <span className="italic text-[#4B5563]">Conteúdo sem prévia disponível</span>}
+      </p>
 
-      {/* Actions row — visible on hover */}
+      {/* Actions — visible on hover */}
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
         <button className="flex items-center gap-1 text-[10px] text-[#9CA3AF] hover:text-[#F9FAFB] transition-colors">
           <Eye size={11} /> Ver
@@ -131,12 +154,22 @@ function CopyCard({ copy }) {
         <button className="flex items-center gap-1 text-[10px] text-[#9CA3AF] hover:text-[#F9FAFB] transition-colors">
           <Palette size={11} /> Gerar Arte
         </button>
+        {copy.status === "draft" && (
+          <>
+            <span className="text-[#2E2E2E]">·</span>
+            <button
+              onClick={() => onApprove(copy.id)}
+              className="flex items-center gap-1 text-[10px] text-emerald-400/80 hover:text-emerald-400 transition-colors"
+            >
+              <Pencil size={11} /> Aprovar
+            </button>
+          </>
+        )}
         <span className="text-[#2E2E2E]">·</span>
-        <button className="flex items-center gap-1 text-[10px] text-[#9CA3AF] hover:text-[#F9FAFB] transition-colors">
-          <Pencil size={11} /> Editar
-        </button>
-        <span className="text-[#2E2E2E]">·</span>
-        <button className="flex items-center gap-1 text-[10px] text-red-500/70 hover:text-red-400 transition-colors ml-auto">
+        <button
+          onClick={() => onDelete(copy.id)}
+          className="flex items-center gap-1 text-[10px] text-red-500/70 hover:text-red-400 transition-colors ml-auto"
+        >
           <Trash2 size={11} /> Deletar
         </button>
       </div>
@@ -147,25 +180,30 @@ function CopyCard({ copy }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function LibraryCopysTab() {
-  const [loading] = useState(false);
+  const {
+    copies, total, page, hasNext, loading, error,
+    fetchCopies, approveCopy, deleteCopy, setPage,
+  } = useLibraryStore();
+
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
-  const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    return MOCK_COPIES.filter((c) => {
-      if (channelFilter && c.channel !== channelFilter) return false;
-      if (statusFilter && c.status !== statusFilter) return false;
-      if (search && !c.content.toLowerCase().includes(search.toLowerCase()) &&
-        !c.topic.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }, [channelFilter, statusFilter, search]);
+  // Fetch whenever filters or page change
+  useEffect(() => {
+    fetchCopies({ channel: channelFilter, status: statusFilter, page });
+  }, [channelFilter, statusFilter, page]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+  // Client-side search within the current page (server handles channel/status)
+  const visible = search
+    ? copies.filter((c) => {
+        const text = JSON.stringify(c.content).toLowerCase();
+        return text.includes(search.toLowerCase()) ||
+          (c.source_url || "").toLowerCase().includes(search.toLowerCase());
+      })
+    : copies;
 
   function handleChannelClick(ch) {
     setChannelFilter((prev) => (prev === ch ? null : ch));
@@ -176,21 +214,26 @@ export default function LibraryCopysTab() {
 
   return (
     <div className="space-y-4">
+      {/* ── Error ─────────────────────────────────────────────── */}
+      {error && (
+        <div className="text-xs text-red-400 bg-red-950/30 border border-red-800/40 rounded-lg px-4 py-3">
+          Erro ao carregar copys: {error}
+        </div>
+      )}
+
       {/* ── Filters ──────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
         <div className="relative flex-1">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4B5563]" />
           <input
             type="text"
-            placeholder="Buscar por texto ou tema..."
+            placeholder="Buscar por texto ou fonte..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-2 bg-[#1A1A1A] border border-[#2E2E2E] rounded-lg text-xs text-[#F9FAFB] placeholder:text-[#4B5563] focus:outline-none focus:border-[#6366F1] transition-colors"
           />
         </div>
 
-        {/* Status select */}
         <select
           value={statusFilter ?? ""}
           onChange={(e) => { setStatusFilter(e.target.value || null); setPage(1); }}
@@ -202,9 +245,8 @@ export default function LibraryCopysTab() {
           <option value="published">Publicado</option>
         </select>
 
-        {/* Total */}
         <span className="self-center text-xs text-[#6B7280] whitespace-nowrap">
-          {filtered.length} cop{filtered.length !== 1 ? "ys" : "y"}
+          {total} cop{total !== 1 ? "ys" : "y"}
         </span>
       </div>
 
@@ -230,20 +272,30 @@ export default function LibraryCopysTab() {
       </div>
 
       {/* ── Cards list ───────────────────────────────────────── */}
-      {paginated.length === 0 ? (
-        <div className="py-12 text-center text-sm text-[#6B7280]">
-          Nenhuma copy encontrada para os filtros aplicados.
+      {visible.length === 0 ? (
+        <div className="py-16 text-center space-y-2">
+          <p className="text-sm text-[#6B7280]">Nenhuma copy encontrada.</p>
+          <p className="text-xs text-[#4B5563]">
+            {total === 0
+              ? "Inicie um pipeline para gerar sua primeira copy."
+              : "Tente ajustar os filtros."}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {paginated.map((copy) => (
-            <CopyCard key={copy.id} copy={copy} />
+          {visible.map((copy) => (
+            <CopyCard
+              key={copy.id}
+              copy={copy}
+              onApprove={approveCopy}
+              onDelete={deleteCopy}
+            />
           ))}
         </div>
       )}
 
       {/* ── Pagination ────────────────────────────────────────── */}
-      <Pagination page={safePage} totalPages={totalPages} onPage={(p) => setPage(p)} />
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
     </div>
   );
 }

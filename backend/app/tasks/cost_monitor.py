@@ -102,7 +102,6 @@ def daily_cost_report() -> None:
     calls = data["calls"]
 
     # Projeção mensal (dia atual do mês → dias restantes)
-    today = datetime.now(timezone.utc)
     days_in_month = 30
     monthly_projection = round(total * days_in_month, 2)
 

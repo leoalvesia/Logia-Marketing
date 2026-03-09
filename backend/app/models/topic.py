@@ -3,7 +3,7 @@
 from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, Float, Integer, DateTime, ForeignKey
+from sqlalchemy import Boolean, String, Text, Float, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -37,8 +37,16 @@ class Topic(Base):
     # Obrigatório — regra: nunca inventar. Todo dado tem fonte.
     source_url: Mapped[str] = mapped_column(Text)
 
+    # True se a source_url respondeu HTTP < 400 no momento da orquestração.
+    # False indica URL morta ou não verificável — exibir aviso no frontend.
+    # Nota: requer migration ALTER TABLE em PostgreSQL (Alembic).
+    source_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # JSON array: ["instagram", "youtube", "linkedin", "twitter"]
     channels_found: Mapped[str] = mapped_column(Text, default="[]")
+
+    # Frases com dados numéricos extraídos da pesquisa (percentuais, ROI, etc.)
+    dados_pesquisa: Mapped[str] = mapped_column(Text, default="")
 
     # Score = frequência×0.4 + recência×0.35 + relevância ao nicho×0.25
     score: Mapped[float] = mapped_column(Float, default=0.0)

@@ -50,6 +50,9 @@ export const pipelineApi = {
     approveCopy: (id, edits) =>
         request("POST", `/api/pipeline/${id}/approve-copy`, { edits }),
 
+    /** GET /api/pipeline/:id/topics */
+    getTopics: (id) => request("GET", `/api/pipeline/${id}/topics`),
+
     /** POST /api/pipeline/:id/approve-art */
     approveArt: (id, artId) =>
         request("POST", `/api/pipeline/${id}/approve-art`, { art_id: artId }),
@@ -64,3 +67,53 @@ export const pipelineApi = {
 };
 
 export default pipelineApi;
+
+// ── Library endpoints ──────────────────────────────────────────────────────────
+
+export const libraryApi = {
+    /** GET /api/library/copies */
+    getCopies: ({ channel, status, page = 1, perPage = 20 } = {}) => {
+        const p = new URLSearchParams({ page, per_page: perPage });
+        if (channel) p.set("channel", channel);
+        if (status) p.set("status", status);
+        return request("GET", `/api/library/copies?${p}`);
+    },
+
+    /** GET /api/library/arts */
+    getArts: ({ type, page = 1, perPage = 20 } = {}) => {
+        const p = new URLSearchParams({ page, per_page: perPage });
+        if (type) p.set("type", type);
+        return request("GET", `/api/library/arts?${p}`);
+    },
+
+    /** GET /api/library/posts */
+    getPosts: ({ page = 1, perPage = 20 } = {}) =>
+        request("GET", `/api/library/posts?page=${page}&per_page=${perPage}`),
+
+    /** PATCH /api/library/copies/:id/approve */
+    approveCopy: (copyId) =>
+        request("PATCH", `/api/library/copies/${copyId}/approve`),
+
+    /** DELETE /api/library/copies/:id */
+    deleteCopy: (copyId) =>
+        request("DELETE", `/api/library/copies/${copyId}`),
+};
+
+// ── Settings endpoints ─────────────────────────────────────────────────────────
+
+export const settingsApi = {
+    /** GET /api/settings/profiles */
+    getProfiles: () => request("GET", "/api/settings/profiles"),
+
+    /** POST /api/settings/profiles */
+    addProfile: (platform, handle) =>
+        request("POST", "/api/settings/profiles", { platform, handle }),
+
+    /** PATCH /api/settings/profiles/:id/toggle */
+    toggleProfile: (id) =>
+        request("PATCH", `/api/settings/profiles/${id}/toggle`),
+
+    /** DELETE /api/settings/profiles/:id */
+    deleteProfile: (id) =>
+        request("DELETE", `/api/settings/profiles/${id}`),
+};

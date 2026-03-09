@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Star } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Star } from "lucide-react";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { ChannelBadge } from "@/components/ui/ChannelBadge";
 
@@ -18,6 +18,7 @@ export const MOCK_TOPICS = [
         channels: ["linkedin", "instagram"],
         sourceUrl: "https://fgv.br/pesquisa/ia-pme-brasil-2026",
         sourceLabel: "FGV Research",
+        sourceVerified: false,
     },
     {
         id: "t2",
@@ -32,6 +33,7 @@ export const MOCK_TOPICS = [
         channels: ["linkedin", "email"],
         sourceUrl: "https://hubspot.com/blog/marketing-automation-b2b",
         sourceLabel: "HubSpot Blog",
+        sourceVerified: true,
     },
     {
         id: "t3",
@@ -46,6 +48,7 @@ export const MOCK_TOPICS = [
         channels: ["instagram", "twitter"],
         sourceUrl: "https://sproutsocial.com/insights/social-media-roi",
         sourceLabel: "Sprout Social",
+        sourceVerified: true,
     },
     {
         id: "t4",
@@ -60,6 +63,7 @@ export const MOCK_TOPICS = [
         channels: ["linkedin"],
         sourceUrl: "https://linkedin.com/pulse/algorithm-update-2026",
         sourceLabel: "LinkedIn Official",
+        sourceVerified: true,
     },
     {
         id: "t5",
@@ -74,6 +78,7 @@ export const MOCK_TOPICS = [
         channels: ["email"],
         sourceUrl: "https://mailchimp.com/resources/email-segmentation-guide",
         sourceLabel: "Mailchimp",
+        sourceVerified: true,
     },
     {
         id: "t6",
@@ -88,6 +93,7 @@ export const MOCK_TOPICS = [
         channels: ["instagram", "youtube"],
         sourceUrl: "https://youtube.com/creators/blog/shorts-b2b",
         sourceLabel: "YouTube Creators",
+        sourceVerified: true,
     },
     {
         id: "t7",
@@ -102,6 +108,7 @@ export const MOCK_TOPICS = [
         channels: ["twitter", "linkedin"],
         sourceUrl: "https://openai.com/blog/content-strategy-prompts",
         sourceLabel: "OpenAI Blog",
+        sourceVerified: true,
     },
     {
         id: "t8",
@@ -116,6 +123,7 @@ export const MOCK_TOPICS = [
         channels: ["instagram", "linkedin"],
         sourceUrl: "https://forbes.com/personal-branding-consultants",
         sourceLabel: "Forbes Business",
+        sourceVerified: true,
     },
     {
         id: "t9",
@@ -130,6 +138,7 @@ export const MOCK_TOPICS = [
         channels: ["twitter", "email"],
         sourceUrl: "https://g2.com/categories/marketing-automation",
         sourceLabel: "G2 Reviews",
+        sourceVerified: true,
     },
     {
         id: "t10",
@@ -144,6 +153,7 @@ export const MOCK_TOPICS = [
         channels: ["instagram", "linkedin", "twitter"],
         sourceUrl: "https://digitalmarketinginstitute.com/trends-q2-2026",
         sourceLabel: "DMI Report",
+        sourceVerified: true,
     },
 ];
 
@@ -219,7 +229,7 @@ function TopicCard({ topic, index, isFirst, onSelect, isLoading }) {
                     {/* Footer row */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2 flex-wrap">
-                            {/* Source link */}
+                            {/* Source link + verified badge */}
                             <a
                                 href={topic.sourceUrl}
                                 target="_blank"
@@ -230,6 +240,23 @@ function TopicCard({ topic, index, isFirst, onSelect, isLoading }) {
                                 <ExternalLink size={10} />
                                 {topic.sourceLabel}
                             </a>
+                            {topic.sourceVerified === true ? (
+                                <span
+                                    title="Fonte verificada"
+                                    className="inline-flex items-center text-[#10B981]"
+                                    aria-label="Fonte verificada"
+                                >
+                                    <CheckCircle2 size={12} />
+                                </span>
+                            ) : (
+                                <span
+                                    title="Fonte não verificada — URL pode estar indisponível"
+                                    className="inline-flex items-center text-[#F59E0B]"
+                                    aria-label="Fonte não verificada"
+                                >
+                                    <AlertTriangle size={12} />
+                                </span>
+                            )}
 
                             {/* Channel badges */}
                             <div className="flex gap-1">

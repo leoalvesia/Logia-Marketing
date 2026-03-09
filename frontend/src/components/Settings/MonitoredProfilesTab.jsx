@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToast } from "@/components/ui/Toast";
 import { ChannelBadge } from "@/components/ui/ChannelBadge";
@@ -100,10 +100,16 @@ function ProfileRow({ profile, onToggle, onRemove, onFetch, fetchingId }) {
 
 export default function MonitoredProfilesTab() {
     const profiles = useSettingsStore((s) => s.monitoredProfiles);
+    const profilesLoaded = useSettingsStore((s) => s.profilesLoaded);
+    const fetchProfiles = useSettingsStore((s) => s.fetchProfiles);
     const addProfile = useSettingsStore((s) => s.addProfile);
     const removeProfile = useSettingsStore((s) => s.removeProfile);
     const toggleProfile = useSettingsStore((s) => s.toggleProfile);
     const reorderProfiles = useSettingsStore((s) => s.reorderProfiles);
+
+    useEffect(() => {
+        if (!profilesLoaded) fetchProfiles();
+    }, []);
     const toast = useToast();
 
     const [newHandle, setNewHandle] = useState("");

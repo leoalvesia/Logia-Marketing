@@ -10,7 +10,6 @@ Compliance LGPD:
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -43,24 +42,31 @@ async def export_account_data(
     """
     # Pipelines
     pipelines_q = await db.execute(
-        select(Pipeline).where(Pipeline.user_id == current_user.id)
+        select(Pipeline)
+        .where(Pipeline.user_id == current_user.id)
         .order_by(Pipeline.created_at.desc())
     )
     pipelines = pipelines_q.scalars().all()
     pipeline_ids = [p.id for p in pipelines]
 
     # Copies (apenas dos pipelines do usuário)
-    copies_q = await db.execute(
-        select(Copy).where(Copy.pipeline_id.in_(pipeline_ids))
-        .order_by(Copy.created_at.desc())
-    ) if pipeline_ids else None
+    copies_q = (
+        await db.execute(
+            select(Copy).where(Copy.pipeline_id.in_(pipeline_ids)).order_by(Copy.created_at.desc())
+        )
+        if pipeline_ids
+        else None
+    )
     copies = copies_q.scalars().all() if copies_q else []
 
     # Arts
-    arts_q = await db.execute(
-        select(Art).where(Art.pipeline_id.in_(pipeline_ids))
-        .order_by(Art.created_at.desc())
-    ) if pipeline_ids else None
+    arts_q = (
+        await db.execute(
+            select(Art).where(Art.pipeline_id.in_(pipeline_ids)).order_by(Art.created_at.desc())
+        )
+        if pipeline_ids
+        else None
+    )
     arts = arts_q.scalars().all() if arts_q else []
 
     # Perfis monitorados
@@ -81,7 +87,8 @@ async def export_account_data(
             "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
             "accepted_terms_at": (
                 current_user.accepted_terms_at.isoformat()
-                if current_user.accepted_terms_at else None
+                if current_user.accepted_terms_at
+                else None
             ),
         },
         "pipelines": [
@@ -176,6 +183,7 @@ async def delete_account(
     # Agendar revogação de tokens OAuth via Celery (fire-and-forget)
     try:
         from app.tasks.account_tasks import revoke_oauth_tokens
+
         revoke_oauth_tokens.delay(current_user.id)
     except Exception as exc:
         logger.warning("revoke_oauth_tokens_failed", error=str(exc))

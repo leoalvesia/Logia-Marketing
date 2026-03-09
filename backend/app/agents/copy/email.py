@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from app.agents.copy.base import CopyAgent, _NEVER_INVENT_CLAUSE
 from app.constants import CHANNEL_LIMITS

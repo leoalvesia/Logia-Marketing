@@ -1,44 +1,29 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { libraryApi } from "@/services/pipelineApi";
 
 export const useLibraryStore = create(
   immer((set, get) => ({
     copies: [],
     arts: [],
+    posts: [],
     total: 0,
+    artsTotal: 0,
+    postsTotal: 0,
     page: 1,
     perPage: 20,
     hasNext: false,
     loading: false,
+    error: null,
     filters: {
-      channel: null,  // 'instagram' | 'linkedin' | ... | null
-      status: null,   // 'draft' | 'approved' | 'published' | null
+      channel: null,
+      status: null,
     },
-
-    setLoading: (loading) =>
-      set((s) => {
-        s.loading = loading;
-      }),
-
-    setCopiesPage: ({ copies, total, page, per_page, has_next }) =>
-      set((s) => {
-        s.copies = copies;
-        s.total = total;
-        s.page = page;
-        s.perPage = per_page;
-        s.hasNext = has_next;
-        s.loading = false;
-      }),
-
-    setArts: (arts) =>
-      set((s) => {
-        s.arts = arts;
-      }),
 
     setFilter: (key, value) =>
       set((s) => {
         s.filters[key] = value;
-        s.page = 1; // reset to first page on filter change
+        s.page = 1;
       }),
 
     setPage: (page) =>
@@ -46,14 +31,65 @@ export const useLibraryStore = create(
         s.page = page;
       }),
 
-    // Memoized selectors
-    filteredCopies: () => {
-      const { copies, filters } = get();
-      return copies.filter((c) => {
-        if (filters.channel && c.channel !== filters.channel) return false;
-        if (filters.status && c.status !== filters.status) return false;
-        return true;
-      });
+    // ── Copies ────────────────────────────────────────────────
+    fetchCopies: async ({ channel, status, page } = {}) => {
+      set((s) => { s.loading = true; s.error = null; });
+      try {
+        const data = await libraryApi.getCopies({ channel, status, page });
+        set((s) => {
+          s.copies = data.copies;
+          s.total = data.total;
+          s.page = data.page;
+          s.perPage = data.per_page;
+          s.hasNext = data.has_next;
+          s.loading = false;
+        });
+      } catch (e) {
+        set((s) => { s.loading = false; s.error = e.message; });
+      }
+    },
+
+    approveCopy: async (copyId) => {
+      await libraryApi.approveCopy(copyId);
+      // Re-fetch current page to reflect status change
+      const { filters, page } = get();
+      await get().fetchCopies({ ...filters, page });
+    },
+
+    deleteCopy: async (copyId) => {
+      await libraryApi.deleteCopy(copyId);
+      const { filters, page } = get();
+      await get().fetchCopies({ ...filters, page });
+    },
+
+    // ── Arts ──────────────────────────────────────────────────
+    fetchArts: async ({ type, page = 1 } = {}) => {
+      set((s) => { s.loading = true; s.error = null; });
+      try {
+        const data = await libraryApi.getArts({ type, page });
+        set((s) => {
+          s.arts = data.arts;
+          s.artsTotal = data.total;
+          s.loading = false;
+        });
+      } catch (e) {
+        set((s) => { s.loading = false; s.error = e.message; });
+      }
+    },
+
+    // ── Posts ─────────────────────────────────────────────────
+    fetchPosts: async ({ page = 1 } = {}) => {
+      set((s) => { s.loading = true; s.error = null; });
+      try {
+        const data = await libraryApi.getPosts({ page });
+        set((s) => {
+          s.posts = data.posts;
+          s.postsTotal = data.total;
+          s.loading = false;
+        });
+      } catch (e) {
+        set((s) => { s.loading = false; s.error = e.message; });
+      }
     },
   }))
 );
